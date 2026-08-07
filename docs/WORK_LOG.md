@@ -4,6 +4,53 @@ This file records completed project work in a format that app, AI, and hardware 
 
 ## 2026-08-07
 
+### Hardware RTSP Stream Contract And QA
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- Documented the MITRA hardware RTSP feed contract, Android LibVLC decode path, PixelCopy frame sampling, local AI frame path, and MessagePack/JPEG cloud upload format.
+- Tested the hardware stream path on the OPPO phone with MITRA hardware connected.
+- Confirmed the phone connected to `MITRA_DEVICE` and received IP `10.42.0.168`.
+- Confirmed RTSP TCP opened but did not deliver PixelCopy frames before watchdog timeout, then LibVLC automatic/UDP fallback produced the first usable frame.
+- Confirmed first decoded frame was captured at 640 x 480 and local hazard inference ran from the hardware frame cache.
+- Confirmed cloud frame send attempts occurred, but the configured cloud WebSocket endpoint was unreachable from the MITRA WiFi route.
+
+Files changed:
+
+- `docs/HARDWARE_STREAM_CONTRACT_AND_QA.md`
+- `docs/HARDWARE_INTEGRATION.md`
+- `docs/PHONE_QA_2026-08-07.md`
+- `docs/WORK_LOG.md`
+
+App impact:
+
+- No runtime app code changed in this entry.
+
+Hardware impact:
+
+- Documents the current Android expectations for MITRA WiFi, RTSP URL, transport fallback, decoded sample format, and pending firmware details to confirm.
+
+AI/model impact:
+
+- No model behavior changed.
+- Confirms local inference can run on decoded hardware frames from `VideoFrameCache`.
+
+Validation:
+
+- OPPO CPH2729 / Android SDK 36 connected to `MITRA_DEVICE`.
+- RTSP URL under test: `rtsp://10.42.0.1:8554/stream`.
+- LibVLC automatic/UDP fallback captured first frame at 640 x 480.
+- `EngineBridge` attached to `VideoActivity` frame source and submitted 50+ frames.
+- `VOICE_BG frame_sent` logs reached `seq=20`.
+
+Follow-ups:
+
+- Capture native firmware encoder codec, resolution, FPS, bitrate, and GOP/keyframe interval.
+- Test cloud ACK/response path with a network route that can reach both MITRA hardware and the cloud WebSocket endpoint.
+- Run a longer 10-minute thermal/power stream test.
+
 ### Camera QA Mic Restart Fix
 
 Owner: MdShabazS / Codex

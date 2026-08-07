@@ -24,7 +24,7 @@ If firmware changes SSID, IP address, port, authentication, or stream path, upda
 
 ## Video Stream Contract
 
-The Android app expects the hardware to provide a stable camera stream that can be decoded by Media3 ExoPlayer in `VideoActivity`.
+The Android app expects the hardware to provide a stable camera stream that can be decoded by LibVLC in `VideoActivity`.
 
 Current assumptions:
 
@@ -32,8 +32,16 @@ Current assumptions:
 - Stream host: `10.42.0.1`
 - Stream port: `8554`
 - Stream path: `/stream`
+- First app transport attempt: RTSP over TCP
+- Fallback transport: LibVLC automatic/UDP mode
+- App decoded sample format: `ARGB_8888` bitmap copied from the displayed `SurfaceView`
+- App sample cadence for the decoded frame cache: about 2.2 FPS by default
+- Cloud upload format: JPEG, quality 70, MessagePack WebSocket payload
+- Cloud upload cadence: fixed 1 FPS
 - App may sample frames at a low cadence for local AI inference while the preview continues normally.
 - If the stream is unavailable, the app should fail gracefully and use the phone camera fallback where possible.
+
+For the full hardware stream contract, Android decode path, cloud payload shape, and QA checklist, see `docs/HARDWARE_STREAM_CONTRACT_AND_QA.md`.
 
 ## AI And Frame Pipeline
 
@@ -77,6 +85,7 @@ Before changing firmware or hardware stream behavior, check:
 - `STREAMING_METADATA_SCHEMA.md` for streaming metadata expectations
 - `app/src/main/AndroidManifest.xml` for Android permissions and services
 - `app/src/main/java/com/unique/visionmate/VideoActivity.kt` for RTSP stream handling
+- `app/src/main/java/com/unique/visionmate/RtspFrameSource.kt` for LibVLC decode and PixelCopy sampling
 - `app/src/main/java/com/unique/visionmate/CameraActivity.kt` for phone-camera fallback behavior
 
 After changing hardware behavior, update:
