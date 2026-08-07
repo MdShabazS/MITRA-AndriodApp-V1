@@ -54,6 +54,7 @@ class RtspFrameSource(
         private const val LIVE_STALL_MS = 4_000L
         private const val FIRST_FRAME_STALL_TCP_MS = 3_200L
         private const val FIRST_FRAME_STALL_UDP_MS = 2_800L
+        private const val FIRST_FRAME_AFTER_VOUT_GRACE_MS = 4_000L
         private const val WATCHDOG_INTERVAL_MS = 800L
         private const val RECONNECT_DELAY_MS = 450L
         private const val FRAME_DUMP_INTERVAL_MS = 2_000L
@@ -82,6 +83,7 @@ class RtspFrameSource(
     @Volatile private var reconnectScheduled = false
     @Volatile private var capturesOk = 0L
     @Volatile private var lastFrameMs = 0L
+    @Volatile private var lastVideoOutputMs = 0L
     @Volatile private var captureInFlight = false
     @Volatile private var transportMode = loadLastGoodTransport()
 
@@ -99,6 +101,7 @@ class RtspFrameSource(
         running = true
         capturesOk = 0L
         lastFrameMs = SystemClock.elapsedRealtime()
+        lastVideoOutputMs = 0L
         callbacks.onVideoSize(captureWidth, captureHeight)
         registerSurfaceCallback()
         registerThermal()
@@ -216,6 +219,12 @@ class RtspFrameSource(
                     scheduleReconnect("error")
                 }
                 MediaPlayer.Event.Vout -> {
+                    lastVideoOutputMs = SystemClock.elapsedRealtime()
+                    if (capturesOk == 0L && reconnectScheduled) {
+                        reconnectScheduled = false
+                        mainHandler.removeCallbacks(reconnectRunnable)
+                        Log.i(TAG, "LibVLC vout arrived; keeping transport=${transportMode.statusLabel} for first frame")
+                    }
                     Log.i(TAG, "LibVLC vout count=${event.voutCount}")
                     callbacks.onVideoSize(captureWidth, captureHeight)
                 }
@@ -415,8 +424,14 @@ class RtspFrameSource(
                 return
             }
             val age = SystemClock.elapsedRealtime() - lastFrameMs
+            val voutGraceDeadlineMs = if (lastVideoOutputMs > 0L) {
+                (lastVideoOutputMs - lastFrameMs).coerceAtLeast(0L) + FIRST_FRAME_AFTER_VOUT_GRACE_MS
+            } else {
+                0L
+            }
             val allowedStallMs = when {
                 capturesOk > 0L -> LIVE_STALL_MS
+                voutGraceDeadlineMs > age -> voutGraceDeadlineMs
                 transportMode == TransportMode.TCP -> FIRST_FRAME_STALL_TCP_MS
                 else -> FIRST_FRAME_STALL_UDP_MS
             }

@@ -66,6 +66,8 @@ There is one canonical decoded frame bus: `VideoFrameCache`. The visible preview
 - First frame timeout:
   - TCP first-frame stall threshold: 3200 ms
   - UDP/auto first-frame stall threshold: 2800 ms
+  - After LibVLC reports video output (`vout`), PixelCopy gets a 4000 ms grace window before the first-frame watchdog reconnects.
+  - If `vout` arrives while a first-frame reconnect is already scheduled, Android cancels that pending reconnect and keeps the current transport alive for PixelCopy.
 - Live stream stall threshold after frames start: 4000 ms
 - Reconnect delay: 450 ms
 - Transport memory:
@@ -284,6 +286,49 @@ WebSocket failure: failed to connect to /151.185.32.13 (port 8765) from /10.42.0
 ```
 
 - Because of that, hardware RTSP decode, frame capture, local inference, local navigation, and outbound frame packaging are validated, but cloud ACK/response handling still needs a network setup where the phone can reach both MITRA hardware and the cloud endpoint.
+
+## Remembered Transport Retest - 2026-08-07
+
+Status: PASS for remembered transport selection and hardware RTSP/local inference path. Startup still depends on when LibVLC/PixelCopy exposes the first frame, so fallback remains active even when Android starts from the remembered transport.
+
+Test setup:
+
+- Phone: OPPO CPH2729 / Android SDK 36.
+- WiFi: `MITRA_DEVICE`.
+- Phone IP on MITRA WiFi: `10.42.0.168`.
+- RTSP URL: `rtsp://10.42.0.1:8554/stream`.
+
+Observed behavior:
+
+- First retest had no remembered transport, started with `vlc-tcp`, fell back to `vlc-auto/udp`, captured the first 640 x 480 PixelCopy frame, and saved `rtsp.last_good_transport=vlc-auto/udp`.
+- Follow-up runs loaded the saved value and started with `initialTransport=vlc-auto/udp`.
+- Hardware frames reached `VideoFrameCache`, local engine attached, and `VOICE_BG frame_sent` emitted JPEG frames.
+- Local-only navigation TTS produced guidance while the cloud WebSocket remained unreachable from the MITRA WiFi route.
+
+Key log evidence:
+
+```text
+mWifiInfo SSID: "MITRA_DEVICE" ... IP: /10.42.0.168
+RtspFrameSource: frame source started url=rtsp://10.42.0.1:8554/stream initialTransport=vlc-tcp
+RtspFrameSource: no RTSP frames yet; retrying with transport=vlc-auto/udp
+RtspFrameSource: first frame captured 640x480 (PixelCopy)
+RtspFrameSource: remembered RTSP transport=vlc-auto/udp
+```
+
+```text
+RtspFrameSource: using remembered RTSP transport=vlc-auto/udp
+RtspFrameSource: frame source started url=rtsp://10.42.0.1:8554/stream initialTransport=vlc-auto/udp
+RtspFrameSource: first frame captured 640x480 (PixelCopy)
+EngineBridge: engine attached
+VOICE_BG: frame_sent seq=1 jpeg_size=14185 send_latency=6ms
+VideoActivity: engine result: Local 1 FPS Day/Night: DAY Scene: INDOOR
+VOICE_BG: Local-only nav TTS spoken ... Continue straight. The indoor path ahead is clear.
+```
+
+Follow-up from this retest:
+
+- Cloud ACK/response still needs a route that can reach both `MITRA_DEVICE` and `ws://151.185.32.13:8765/ws`.
+- OPPO can still show Accessibility settings until the service fully binds; after `MITRA_ACC accessibility service connected`, normal MITRA stream flow continues.
 
 Remaining hardware details to capture from firmware/hardware engineer:
 

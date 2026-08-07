@@ -14,6 +14,7 @@ Summary:
 - Shortened WiFi scan result wait and retry delays during the MITRA hardware search flow.
 - Shortened RTSP first-frame fallback timings so TCP/UDP fallback happens faster when the first transport does not deliver frames.
 - Added RTSP transport memory: when TCP or LibVLC automatic/UDP successfully produces the first frame, the app saves that transport and tries it first on the next hardware stream launch.
+- Added a first-frame video-output guard so LibVLC `vout` can cancel an already scheduled reconnect and PixelCopy gets a short grace window to capture the first frame.
 
 Files changed:
 
@@ -43,11 +44,15 @@ Validation:
 - `:app:testDebugUnitTest` passed.
 - Updated APK installed on OPPO CPH2729 / Android SDK 36.
 - ADB confirmed accessibility was not enabled on the phone during this check (`enabled_accessibility_services = null`), matching the setup issue being fixed.
-- Full remembered-transport hardware retest is pending because the phone was on `Shabaz 5G`, not `MITRA_DEVICE`, and the app did not currently have a saved MITRA WiFi password in preferences.
+- Retested after connecting the phone to `MITRA_DEVICE` with IP `10.42.0.168`.
+- First hardware run started with TCP, fell back to LibVLC automatic/UDP, captured the first 640 x 480 frame, and saved `rtsp.last_good_transport=vlc-auto/udp`.
+- Follow-up hardware run loaded the remembered transport and started with `initialTransport=vlc-auto/udp`.
+- Confirmed hardware frames reached `VideoFrameCache`, local engine attached, `VOICE_BG frame_sent` emitted JPEG frames, and local-only navigation TTS produced guidance.
+- Cloud WebSocket still failed from the MITRA WiFi route because the phone could not reach `ws://151.185.32.13:8765/ws` while bound to hardware WiFi.
 
 Follow-ups:
 
-- Retest with hardware connected twice: first launch should discover/save the working transport, second launch should start with the remembered transport.
+- Test cloud ACK/response with a route that can reach both MITRA hardware and the cloud WebSocket endpoint.
 
 ### Voice Command Background QA And Wake-Word Fix
 
