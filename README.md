@@ -24,6 +24,19 @@ This branch contains the tested OPPO-working backup version from `BACKUPS/oppo_w
 - `engine`: Local on-device hazard inference pipeline and feature runners.
 - `app/src/main/assets/models`: Active bundled TFLite models and model manifest.
 
+## Team Documentation
+
+This project is maintained by a team. Every meaningful change must update Markdown documentation so app, AI, and hardware engineers can understand the work without guessing.
+
+- `docs/DOCUMENTATION_STANDARDS.md`: required documentation process for future work.
+- `docs/WORK_LOG.md`: chronological record of completed tasks.
+- `docs/HARDWARE_INTEGRATION.md`: hardware-facing WiFi, RTSP, camera, and AI pipeline expectations.
+- `WORKFLOW.md`: end-to-end app behavior.
+- `COMMANDS.md`: voice command behavior.
+- `STREAMING_METADATA_SCHEMA.md`: streaming metadata contract.
+
+When code changes, update the relevant docs in the same branch.
+
 ## Build
 
 Use Android Studio or:

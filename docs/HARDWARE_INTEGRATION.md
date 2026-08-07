@@ -1,0 +1,99 @@
+# MITRA Hardware Integration Guide
+
+This file is for the hardware engineer and anyone giving this repository to an AI assistant as supporting context for hardware or firmware work.
+
+## Current App Expectations
+
+The Android app supports two video paths:
+
+| Path | When used | App expectation |
+|---|---|---|
+| MITRA hardware RTSP | MITRA WiFi is available | Device exposes a live RTSP stream |
+| Phone back camera | MITRA hardware is not available | App falls back locally |
+
+## WiFi Contract
+
+| Item | Current value |
+|---|---|
+| Hardware SSID | `MITRA_DEVICE` |
+| Hardware IP expected by app | `10.42.0.1` |
+| RTSP URL | `rtsp://10.42.0.1:8554/stream` |
+| App behavior | Scan for MITRA WiFi, connect, then open hardware stream |
+
+If firmware changes SSID, IP address, port, authentication, or stream path, update this file and the Android code in the same branch.
+
+## Video Stream Contract
+
+The Android app expects the hardware to provide a stable camera stream that can be decoded by Media3 ExoPlayer in `VideoActivity`.
+
+Current assumptions:
+
+- Stream protocol: RTSP
+- Stream host: `10.42.0.1`
+- Stream port: `8554`
+- Stream path: `/stream`
+- App may sample frames at a low cadence for local AI inference while the preview continues normally.
+- If the stream is unavailable, the app should fail gracefully and use the phone camera fallback where possible.
+
+## AI And Frame Pipeline
+
+The app samples frames from the live stream/camera and sends them through the local hazard engine.
+
+Current high-level pipeline:
+
+```text
+frame -> day/night gate -> scene classifier -> hazard features -> spoken/logged guidance
+```
+
+Hazard features currently documented in the app flow:
+
+- Fire/smoke
+- Wet/dry
+- Pothole
+- Electric pole
+- Pedestrian
+- OCR through ML Kit
+
+The active model files live in:
+
+```text
+app/src/main/assets/models/
+```
+
+The active model manifest is:
+
+```text
+app/src/main/assets/models/manifest.json
+```
+
+If the hardware changes camera orientation, resolution, compression, exposure behavior, timestamping, or frame cadence, document the expected impact here because it can affect AI detection quality.
+
+## Hardware Engineer Checklist
+
+Before changing firmware or hardware stream behavior, check:
+
+- `README.md` for the current app overview
+- `WORKFLOW.md` for the full app flow
+- `STREAMING_METADATA_SCHEMA.md` for streaming metadata expectations
+- `app/src/main/AndroidManifest.xml` for Android permissions and services
+- `app/src/main/java/com/unique/visionmate/VideoActivity.kt` for RTSP stream handling
+- `app/src/main/java/com/unique/visionmate/CameraActivity.kt` for phone-camera fallback behavior
+
+After changing hardware behavior, update:
+
+- This file
+- `WORKFLOW.md`
+- `docs/WORK_LOG.md`
+- Any app code or tests affected by the new hardware behavior
+
+## Open Hardware Details To Confirm
+
+These details should be filled in as the hardware implementation becomes stable:
+
+- Camera module model and output resolution
+- RTSP encoder settings
+- Expected stream FPS
+- Expected boot time before WiFi/RTSP is available
+- Power behavior during long sessions
+- Thermal behavior during continuous streaming
+- Any firmware OTA or config mechanism

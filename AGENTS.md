@@ -149,6 +149,8 @@ Min/Target SDK: 29 / 36. JVM target 11. Namespace `com.unique.visionmate`.
 - **Do not** modify `BackgroundService`, `MainActivity`, `VideoActivity`, or `AutoSendAccessibilityService` to "wire in" the engine until §3.5 invariants are testable. The first integration is the single observer in `VideoActivity`.
 - When in doubt about backend semantics, **query the backend KG**. Do not open `D:\MITRA\Cloud-infra\**` source unless the KG is silent and the user has approved a deeper read.
 - This file is part of the contract. Update it when a §3 decision changes; never let it drift.
+- Every meaningful code, workflow, AI, model, or hardware-contract change must update Markdown documentation in the same branch. Read and follow [docs/DOCUMENTATION_STANDARDS.md](docs/DOCUMENTATION_STANDARDS.md), add a short entry to [docs/WORK_LOG.md](docs/WORK_LOG.md), and update [docs/HARDWARE_INTEGRATION.md](docs/HARDWARE_INTEGRATION.md) whenever WiFi, RTSP, camera, streaming, or hardware assumptions change.
+- Work from the personal repo remote first. The organization repo must be treated as an upstream review target, not a default push target.
 
 ---
 
