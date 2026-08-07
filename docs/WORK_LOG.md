@@ -4,6 +4,50 @@ This file records completed project work in a format that app, AI, and hardware 
 
 ## 2026-08-07
 
+### Camera QA Mic Restart Fix
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- During physical OPPO phone camera testing, the mic indicator/sound toggled repeatedly while `CameraActivity` was running.
+- Logs showed `BackgroundService` speech recognition restarting during the camera test path.
+- Updated `CameraActivity` so the debug camera inference path no longer starts the voice service or requests microphone permission automatically.
+- Added a camera QA entry stop that clears `MitraRuntime` active state and sends `ACTION_STOP_MITRA_RUNTIME`, preventing pending voice-runtime restart alarms from reviving SpeechRecognizer during camera testing.
+- Added phone QA evidence for the OPPO retest.
+
+Files changed:
+
+- `app/src/main/java/com/unique/visionmate/CameraActivity.kt`
+- `docs/PHONE_QA_2026-08-07.md`
+- `docs/WORK_LOG.md`
+
+App impact:
+
+- Camera test path now focuses on camera + local engine inference.
+- Main app voice behavior is unchanged.
+
+Hardware impact:
+
+- No hardware stream behavior changed.
+
+AI/model impact:
+
+- No model or inference behavior changed.
+
+Validation:
+
+- `:app:assembleDebug` passed.
+- Installed the rebuilt APK on OPPO CPH2729 / Android SDK 36.
+- Clean-launched `CameraActivity` after force-stop and logcat clear.
+- Confirmed continuous `CameraTest` / `HAZARD` inference logs through frame 25+.
+- Confirmed no `VOICE_BG` logs during the patched camera run.
+- Confirmed no `ACTION_RESTART_RUNTIME` intent during the patched camera run.
+
+Follow-ups:
+
+- If voice needs to be tested together with camera inference later, add an explicit debug toggle instead of starting mic automatically.
+
 ### Production Readiness Audit
 
 Owner: MdShabazS / Codex

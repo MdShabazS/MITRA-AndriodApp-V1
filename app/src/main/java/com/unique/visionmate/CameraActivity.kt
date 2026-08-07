@@ -43,9 +43,9 @@ import java.util.concurrent.atomic.AtomicInteger
  * HazardEngine that the offline test activity uses. The engine starts
  * automatically as soon as the camera is ready (no flag toggle needed).
  *
- * BackgroundService (voice / wake-word / OCR / AI Q&A) is untouched and keeps
- * running. Mic and camera are independent hardware so wake-word recognition
- * continues to work while the engine processes camera frames.
+ * This debug/test path does not start the voice service automatically. Keeping
+ * SpeechRecognizer active here causes repeated mic start/stop sounds on some
+ * OPPO/ColorOS devices while the camera engine is running.
  */
 class CameraActivity : AppCompatActivity() {
 
@@ -96,18 +96,17 @@ class CameraActivity : AppCompatActivity() {
         ActivityResultContracts.RequestMultiplePermissions()
     ) { results ->
         val cam = results[Manifest.permission.CAMERA] == true
-        val mic = results[Manifest.permission.RECORD_AUDIO] == true
         if (cam) {
             startCameraAndEngine()
         } else {
             statusView.text = "Camera permission denied — engine cannot start"
             speak("Camera not available. Please allow camera access to use MITRA.")
         }
-        if (mic) startVoiceService() else Log.w(TAG, "RECORD_AUDIO denied; voice/wake-word features won't run from this entry point")
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        stopVoiceRuntimeForCameraQa()
         setContentView(R.layout.activity_camera)
         previewView = findViewById(R.id.previewView)
         statusView = findViewById(R.id.statusView)
@@ -120,35 +119,21 @@ class CameraActivity : AppCompatActivity() {
         }
 
         val needCam = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED
-        val needMic = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED
-
         if (!needCam) startCameraAndEngine()
-        if (!needMic) startVoiceService()
 
         val toRequest = mutableListOf<String>()
         if (needCam) toRequest += Manifest.permission.CAMERA
-        if (needMic) toRequest += Manifest.permission.RECORD_AUDIO
         if (toRequest.isNotEmpty()) requestPerms.launch(toRequest.toTypedArray())
     }
 
-    /**
-     * Bring up BackgroundService (voice / wake-word / AI Q&A / actions) so the existing
-     * "sunmitra open youtube"-style flow keeps working while the camera engine runs.
-     * Same call MainActivity makes — the service is idempotent, calling start again on
-     * an already-running service is a no-op.
-     */
-    private fun startVoiceService() {
+    private fun stopVoiceRuntimeForCameraQa() {
+        MitraRuntime.setActive(this, false)
         try {
-            startForegroundService(Intent(this, BackgroundService::class.java))
             startService(Intent(this, BackgroundService::class.java).apply {
-                action = BackgroundService.ACTION_START_MITRA_RUNTIME
+                action = BackgroundService.ACTION_STOP_MITRA_RUNTIME
             })
-            startService(Intent(this, BackgroundService::class.java).apply {
-                action = BackgroundService.ACTION_START_STREAMING
-            })
-            Log.i(TAG, "BackgroundService start requested")
         } catch (e: Exception) {
-            Log.w(TAG, "BackgroundService start failed: ${e.message}")
+            Log.w(TAG, "voice runtime stop skipped for camera QA: ${e.message}")
         }
     }
 
