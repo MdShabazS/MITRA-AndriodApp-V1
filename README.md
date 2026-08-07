@@ -31,6 +31,7 @@ This project is maintained by a team. Every meaningful change must update Markdo
 - `docs/DOCUMENTATION_STANDARDS.md`: required documentation process for future work.
 - `docs/WORK_LOG.md`: chronological record of completed tasks.
 - `docs/HARDWARE_INTEGRATION.md`: hardware-facing WiFi, RTSP, camera, and AI pipeline expectations.
+- `docs/ANDROID_DEVICE_COMPATIBILITY_PLAN.md`: release gate and test matrix for running MITRA across supported Android phones.
 - `WORKFLOW.md`: end-to-end app behavior.
 - `COMMANDS.md`: voice command behavior.
 - `STREAMING_METADATA_SCHEMA.md`: streaming metadata contract.
