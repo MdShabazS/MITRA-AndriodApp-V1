@@ -3,6 +3,8 @@
 In the **background** (another app in front), say **"MITRA"** first, e.g. "MITRA open WhatsApp".
 On the MITRA home screen with voice on, you can skip the wake word.
 
+Accepted wake-word forms are **mitra**, **mi tra**, and **mithra**. Near-miss words are ignored so the assistant does not wake accidentally.
+
 ## Wake / control
 - **mitra** (alone) → "Yes, I'm listening"
 - **start mitra** → begin device/Wi-Fi search (or phone camera)

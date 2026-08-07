@@ -85,9 +85,6 @@ class BackgroundService : Service() {
         private const val CLOUD_FRAME_MAX_AGE_MS = 3_000L
         private const val RESTART_REQUEST_CODE = 3021
 
-        // Fixed canonical wake word with a small STT-safe fallback list.
-        private val DEFAULT_WAKE_WORD_VARIANTS = setOf("mitra", "mi tra", "mithra")
-
         @Volatile
         private var heldWifiNetwork: Network? = null
 
@@ -1084,44 +1081,18 @@ class BackgroundService : Service() {
 
     // ===== COMMAND PROCESSING =====
 
-    // Words that indicate a real command — used to pick the best of several speech guesses.
-    private val commandKeywords = listOf(
-        "open", "launch", "call", "send", "reply", "navigate", "go to", "go home", "play",
-        "read", "take", "close", "back", "home", "start", "stop", "sleep", "battery",
-        "time", "date", "repeat", "hey", "hello", "hi", "mitra", "exit", "message", "whatsapp"
-    )
-
     /** From the recognizer's guesses, prefer the first that looks like a command; else the top guess. */
-    private fun pickBestCandidate(candidates: List<String>): String {
-        if (candidates.isEmpty()) return ""
-        for (c in candidates) {
-            val n = normalizeSpeechText(c.lowercase())
-            if (commandKeywords.any { n.contains(it) }) return c.lowercase().trim()
-        }
-        return candidates[0].lowercase().trim()
-    }
+    private fun pickBestCandidate(candidates: List<String>): String =
+        VoiceCommandSelector.pickBestCandidate(candidates)
 
     private fun normalizeSpeechText(text: String) =
-        text.lowercase().replace(Regex("\\s+"), " ").trim()
+        VoiceCommandSelector.normalizeSpeechText(text)
 
-    private fun activeWakeWordVariants(): Set<String> = DEFAULT_WAKE_WORD_VARIANTS
+    private fun containsWakeWord(text: String): Boolean =
+        VoiceCommandSelector.containsWakeWord(text)
 
-    private fun containsWakeWord(text: String): Boolean {
-        val compact = text.replace(" ", "")
-        val variants = activeWakeWordVariants()
-        return variants.any { text.contains(it) || compact.contains(it.replace(" ", "")) }
-    }
-
-    private fun removeWakeWord(text: String): String {
-        var result = text
-        val variants = activeWakeWordVariants()
-        for (variant in variants) result = result.replace(variant, " ").trim()
-        if (result.isEmpty()) {
-            val compact = text.replace(" ", "")
-            if (variants.any { compact == it.replace(" ", "") }) return ""
-        }
-        return result.replace(Regex("\\s+"), " ").trim()
-    }
+    private fun removeWakeWord(text: String): String =
+        VoiceCommandSelector.removeWakeWord(text)
 
     private fun normalizeCommand(command: String): String {
         return command.lowercase()

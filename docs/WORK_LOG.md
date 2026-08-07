@@ -4,6 +4,55 @@ This file records completed project work in a format that app, AI, and hardware 
 
 ## 2026-08-07
 
+### Voice Command Background QA And Wake-Word Fix
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- Tested MITRA background runtime on the OPPO phone after installing a rebuilt APK.
+- Confirmed the app process stayed alive after pressing Home and `VOICE_BG` continued running.
+- Fixed speech candidate selection so Android STT candidates containing the wake word are preferred over earlier non-wake candidates that only contain command keywords.
+- Tightened wake-word matching to the whole word/phrase `mitra`, `mi tra`, or `mithra`, so near-misses such as `mathura`, `myntra`, and `mitrata` do not wake MITRA.
+- Added unit tests for the wake-word and candidate selector behavior.
+- Documented the command matrix and live retest procedure for the team.
+
+Files changed:
+
+- `app/src/main/java/com/unique/visionmate/VoiceCommandSelector.kt`
+- `app/src/main/java/com/unique/visionmate/BackgroundService.kt`
+- `app/src/test/java/com/unique/visionmate/VoiceCommandSelectorTest.kt`
+- `docs/VOICE_COMMAND_BACKGROUND_QA_2026-08-07.md`
+- `docs/WORK_LOG.md`
+
+App impact:
+
+- Background commands are more likely to use the recognizer candidate containing `mitra`.
+- False wakes from near-miss words are reduced.
+
+Hardware impact:
+
+- No hardware firmware behavior changed.
+- `start MITRA` and hardware-frame commands still need final live retest with the hardware stream active.
+
+AI/model impact:
+
+- No model or inference behavior changed.
+
+Validation:
+
+- `:app:testDebugUnitTest` passed.
+- `:app:assembleDebug` passed.
+- Installed debug APK on OPPO CPH2729 / Android SDK 36.
+- Confirmed `pidof com.unique.visionmate -> 15669` after pressing Home.
+- Confirmed `VOICE_BG` logs continued in background.
+- Current live speech run was inconclusive because the recognizer heard unrelated speech / `STT error code: 7`.
+
+Follow-ups:
+
+- Repeat the full live voice command matrix in a quiet room.
+- Avoid real call/WhatsApp-send tests until a safe test contact and message are agreed.
+
 ### Hardware RTSP Stream Contract And QA
 
 Owner: MdShabazS / Codex
