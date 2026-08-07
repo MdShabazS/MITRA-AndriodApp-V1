@@ -19,8 +19,8 @@ Purpose:
 | Full RTSP URL | `rtsp://10.42.0.1:8554/stream` |
 | Android entry point | `VideoActivity` |
 | Decoder | LibVLC |
-| First transport attempt | RTSP over TCP |
-| Fallback transport | LibVLC automatic/UDP mode |
+| First transport attempt | Last successful transport from app memory, else RTSP over TCP |
+| Fallback transport | Alternate between RTSP over TCP and LibVLC automatic/UDP mode |
 | Audio handling | Disabled in LibVLC with `--no-audio` |
 | Decode/display surface | Android `SurfaceView` |
 | AI/cloud frame source | `VideoFrameCache`, populated from the same visible `SurfaceView` via `PixelCopy` |
@@ -62,12 +62,16 @@ There is one canonical decoded frame bus: `VideoFrameCache`. The visible preview
   - `:clock-synchro=0`
   - `:drop-late-frames`
   - `:skip-frames`
-  - `:rtsp-tcp` on the first attempt
+  - `:rtsp-tcp` when the selected transport is TCP
 - First frame timeout:
-  - TCP first-frame stall threshold: 6000 ms
-  - UDP/auto first-frame stall threshold: 5000 ms
+  - TCP first-frame stall threshold: 3200 ms
+  - UDP/auto first-frame stall threshold: 2800 ms
 - Live stream stall threshold after frames start: 4000 ms
-- Reconnect delay: 900 ms
+- Reconnect delay: 450 ms
+- Transport memory:
+  - The first transport that produces a captured frame is saved in app preferences.
+  - On the next hardware stream launch, Android tries that saved transport first.
+  - If the saved transport fails, the normal alternate-transport fallback still runs.
 
 Current decoded sample settings:
 

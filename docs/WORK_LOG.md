@@ -4,6 +4,51 @@ This file records completed project work in a format that app, AI, and hardware 
 
 ## 2026-08-07
 
+### Accessibility Prompt And RTSP Startup Tuning
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- Replaced the misleading setup phrase `Accessibility skipped` with a delayed recheck and clearer message when accessibility is still not enabled.
+- Shortened WiFi scan result wait and retry delays during the MITRA hardware search flow.
+- Shortened RTSP first-frame fallback timings so TCP/UDP fallback happens faster when the first transport does not deliver frames.
+- Added RTSP transport memory: when TCP or LibVLC automatic/UDP successfully produces the first frame, the app saves that transport and tries it first on the next hardware stream launch.
+
+Files changed:
+
+- `app/src/main/java/com/unique/visionmate/MainActivity.kt`
+- `app/src/main/java/com/unique/visionmate/RtspFrameSource.kt`
+- `docs/HARDWARE_STREAM_CONTRACT_AND_QA.md`
+- `docs/WORK_LOG.md`
+
+App impact:
+
+- Setup feedback is clearer if accessibility is not actually enabled.
+- Hardware stream startup should feel faster, especially after one successful session because the last working transport is tried first.
+- Normal fallback remains in place if the remembered transport fails.
+
+Hardware impact:
+
+- No firmware contract changed.
+- Android now adapts to the last observed working RTSP transport for faster repeat launches.
+
+AI/model impact:
+
+- No model or inference behavior changed.
+
+Validation:
+
+- `:app:assembleDebug` passed.
+- `:app:testDebugUnitTest` passed.
+- Updated APK installed on OPPO CPH2729 / Android SDK 36.
+- ADB confirmed accessibility was not enabled on the phone during this check (`enabled_accessibility_services = null`), matching the setup issue being fixed.
+- Full remembered-transport hardware retest is pending because the phone was on `Shabaz 5G`, not `MITRA_DEVICE`, and the app did not currently have a saved MITRA WiFi password in preferences.
+
+Follow-ups:
+
+- Retest with hardware connected twice: first launch should discover/save the working transport, second launch should start with the remembered transport.
+
 ### Voice Command Background QA And Wake-Word Fix
 
 Owner: MdShabazS / Codex

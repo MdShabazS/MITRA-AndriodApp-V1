@@ -59,6 +59,10 @@ class MainActivity : AppCompatActivity() {
         private const val BATTERY_OPT_REQUEST_CODE = 200
         private const val ACCESSIBILITY_REQUEST_CODE = 201
         private const val OVERLAY_REQUEST_CODE = 202
+        private const val SETTINGS_RETURN_RECHECK_MS = 1_200L
+        private const val WIFI_SCAN_RESULTS_DELAY_MS = 1_200L
+        private const val WIFI_SCAN_RETRY_DELAY_MS = 750L
+        private const val WIFI_CONNECT_TIMEOUT_MS = 10_000
     }
 
     // TTS
@@ -284,7 +288,7 @@ class MainActivity : AppCompatActivity() {
         if (connectionFlowActive && pendingSettingsReturnCode != 0) {
             val requestCode = pendingSettingsReturnCode
             pendingSettingsReturnCode = 0
-            mainHandler.postDelayed({ handleSettingsReturn(requestCode) }, 300)
+            mainHandler.postDelayed({ handleSettingsReturn(requestCode) }, SETTINGS_RETURN_RECHECK_MS)
             return
         }
 
@@ -609,25 +613,35 @@ class MainActivity : AppCompatActivity() {
                         requestOverlayPermission()
                     }
                 } else {
-                    // Asked once already — don't reopen settings again. Continue with setup.
-                    speakThen("Accessibility skipped.") {
-                        requestOverlayPermission()
-                    }
+                    mainHandler.postDelayed({
+                        if (isAccessibilityServiceEnabled()) {
+                            speakThen("Accessibility enabled.") {
+                                requestOverlayPermission()
+                            }
+                        } else {
+                            // Asked once already — don't reopen settings again. Continue with setup.
+                            speakThen("Accessibility is not enabled. Background controls will be limited.") {
+                                requestOverlayPermission()
+                            }
+                        }
+                    }, SETTINGS_RETURN_RECHECK_MS)
                 }
             }
 
             OVERLAY_REQUEST_CODE -> {
-                if (Settings.canDrawOverlays(this)) {
-                    speakThen("Display enabled.") {
-                        requestPermissionsThenScan(silent = false)
+                mainHandler.postDelayed({
+                    if (Settings.canDrawOverlays(this)) {
+                        speakThen("Display enabled.") {
+                            requestPermissionsThenScan(silent = false)
+                        }
+                    } else {
+                        speakThen(
+                            "Display over apps is not enabled. Continuing setup."
+                        ) {
+                            requestPermissionsThenScan(silent = false)
+                        }
                     }
-                } else {
-                    speakThen(
-                        "Display skipped."
-                    ) {
-                        requestPermissionsThenScan(silent = false)
-                    }
-                }
+                }, SETTINGS_RETURN_RECHECK_MS)
             }
         }
     }
@@ -726,7 +740,7 @@ class MainActivity : AppCompatActivity() {
 
         Handler(Looper.getMainLooper()).postDelayed({
             checkScanResults()
-        }, 2500)
+        }, WIFI_SCAN_RESULTS_DELAY_MS)
     }
 
     @SuppressLint("MissingPermission")
@@ -792,7 +806,7 @@ class MainActivity : AppCompatActivity() {
             }
             return
         }
-        Handler(Looper.getMainLooper()).postDelayed({ startWifiScan() }, 1500)
+        Handler(Looper.getMainLooper()).postDelayed({ startWifiScan() }, WIFI_SCAN_RETRY_DELAY_MS)
     }
 
     private fun onMitraDeviceFound(ssid: String) {
@@ -876,7 +890,7 @@ class MainActivity : AppCompatActivity() {
 
         try {
             Log.i("MITRA_WIFI", "requesting network for $ssid")
-            connectivityManager.requestNetwork(request, networkCallback!!, 15000)
+            connectivityManager.requestNetwork(request, networkCallback!!, WIFI_CONNECT_TIMEOUT_MS)
         } catch (e: Exception) {
             Log.e("MITRA_WIFI", "requestNetwork failed for $ssid: ${e.message}", e)
             speak("Network error. Please try again.")

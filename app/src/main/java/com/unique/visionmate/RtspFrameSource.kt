@@ -37,7 +37,12 @@ class RtspFrameSource(
 
     private enum class TransportMode(val statusLabel: String) {
         TCP("vlc-tcp"),
-        AUTO_UDP("vlc-auto/udp")
+        AUTO_UDP("vlc-auto/udp");
+
+        companion object {
+            fun fromStored(value: String?): TransportMode? =
+                entries.firstOrNull { it.statusLabel == value }
+        }
     }
 
     companion object {
@@ -47,15 +52,16 @@ class RtspFrameSource(
         private const val BASE_PUBLISH_INTERVAL_MS = 450L
         private const val FIRST_CAPTURE_DELAY_MS = 250L
         private const val LIVE_STALL_MS = 4_000L
-        private const val FIRST_FRAME_STALL_TCP_MS = 6_000L
-        private const val FIRST_FRAME_STALL_UDP_MS = 5_000L
-        private const val WATCHDOG_INTERVAL_MS = 1_500L
-        private const val RECONNECT_DELAY_MS = 900L
+        private const val FIRST_FRAME_STALL_TCP_MS = 3_200L
+        private const val FIRST_FRAME_STALL_UDP_MS = 2_800L
+        private const val WATCHDOG_INTERVAL_MS = 800L
+        private const val RECONNECT_DELAY_MS = 450L
         private const val FRAME_DUMP_INTERVAL_MS = 2_000L
         private const val FRAME_DUMP_MAX = 40
         private const val CAPTURE_FAILURE_LOG_INTERVAL_MS = 2_000L
 
         const val PREF_DUMP_FRAMES = "offload.debug.dumpFrames"
+        const val PREF_LAST_GOOD_TRANSPORT = "rtsp.last_good_transport"
         const val BUILD_TAG = "rtsp-libvlc-surface-pixelcopy"
     }
 
@@ -77,7 +83,7 @@ class RtspFrameSource(
     @Volatile private var capturesOk = 0L
     @Volatile private var lastFrameMs = 0L
     @Volatile private var captureInFlight = false
-    @Volatile private var transportMode = TransportMode.TCP
+    @Volatile private var transportMode = loadLastGoodTransport()
 
     private val dumpFrames: Boolean by lazy {
         context.getSharedPreferences(MainActivity.PREFS_NAME, Context.MODE_PRIVATE)
@@ -99,7 +105,7 @@ class RtspFrameSource(
         mainHandler.post { startPlayerWhenSurfaceReady("start") }
         mainHandler.postDelayed(watchdog, WATCHDOG_INTERVAL_MS)
         readerHandler.postDelayed(captureTick, FIRST_CAPTURE_DELAY_MS)
-        Log.i(TAG, "frame source started url=$rtspUrl [build $BUILD_TAG]")
+        Log.i(TAG, "frame source started url=$rtspUrl initialTransport=${transportMode.statusLabel} [build $BUILD_TAG]")
     }
 
     fun stop() {
@@ -313,6 +319,7 @@ class RtspFrameSource(
             lastFrameMs = now
             if (capturesOk++ == 0L) {
                 Log.i(TAG, "first frame captured ${dest.width}x${dest.height} (PixelCopy)")
+                rememberLastGoodTransport()
             }
             reconnectScheduled = false
             mainHandler.removeCallbacks(reconnectRunnable)
@@ -351,6 +358,28 @@ class RtspFrameSource(
     }
 
     // ---- Reconnect / watchdog -----------------------------------------------------------------
+
+    private fun loadLastGoodTransport(): TransportMode {
+        val prefs = context.getSharedPreferences(MainActivity.PREFS_NAME, Context.MODE_PRIVATE)
+        val stored = prefs.getString(PREF_LAST_GOOD_TRANSPORT, null)
+        val mode = TransportMode.fromStored(stored) ?: TransportMode.TCP
+        if (stored != null) {
+            Log.i(TAG, "using remembered RTSP transport=${mode.statusLabel}")
+        }
+        return mode
+    }
+
+    private fun rememberLastGoodTransport() {
+        try {
+            context.getSharedPreferences(MainActivity.PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putString(PREF_LAST_GOOD_TRANSPORT, transportMode.statusLabel)
+                .apply()
+            Log.i(TAG, "remembered RTSP transport=${transportMode.statusLabel}")
+        } catch (e: Exception) {
+            Log.w(TAG, "could not remember RTSP transport: ${e.message}")
+        }
+    }
 
     private fun scheduleReconnect(reason: String) {
         if (!running || reconnectScheduled) return
