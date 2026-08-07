@@ -1,0 +1,65 @@
+# MITRA / VisionMate — App Workflow
+
+Assistive-vision app for blind / low-vision users. The MITRA hardware is a camera that streams over
+its own Wi-Fi; the phone app is the brain — voice assistant + on-device hazard detection. When no
+hardware is present, it falls back to the phone's own camera.
+
+## Components
+
+| Component | Role |
+|---|---|
+| `MainActivity` | Home screen, launcher, one-time onboarding, hardware-vs-camera routing, voice on/off button |
+| `BackgroundService` | Foreground service: wake word + speech recognition, command handling, TTS, Wi-Fi hold, cloud streaming, call-state handling |
+| `VideoActivity` | Shows the MITRA RTSP stream; attaches the hazard engine to stream frames |
+| `CameraActivity` | Phone back-camera fallback; attaches the hazard engine to camera frames |
+| `OfflineTestActivity` | Runs the engine on a local test video (dev/QA) |
+| `EngineBridge` | The single link between `:app` and the `:engine` hazard module |
+| `:engine` | TFLite hazard inference (day/night, scene, fire/smoke, wet/dry, pothole, electric pole, pedestrian) + ML Kit OCR |
+| `AutoSendAccessibilityService` | Launches apps from the background, taps WhatsApp send, camera shutter, home/back |
+| `MitraNotificationListener` | Reads incoming WhatsApp/SMS aloud; captures the reply action |
+
+## 1. App start
+1. Open app → `MainActivity` → TTS: "Voice enabled. Say start mitra to begin, or a command like open an app."
+2. Voice control is **ON** by default (mic button highlighted blue). `BackgroundService` starts and listens.
+3. On the home screen you can speak commands directly (no wake word). It stays **idle** — no camera, no Wi-Fi search — until you tap **START** or say **"start mitra"**.
+
+## 2. Start MITRA (hardware detect → fallback)
+Triggered by the START button or the voice command "start mitra" (works from the background too):
+1. Scan ~2.5s for the MITRA Wi-Fi (`MITRA_DEVICE`).
+2. **Found** → ask the Wi-Fi password → connect → open `VideoActivity` (live RTSP stream).
+3. **Not found** (or no location) → open `CameraActivity` (phone back camera).
+4. Once the search starts, voice control turns off (the setup flow needs the mic).
+
+## 3. Hazard engine (per frame)
+Inside `VideoActivity`/`CameraActivity`, `EngineBridge` feeds frames (~1 fps) to `:engine`:
+```
+frame → DayNightGate
+         ├─ night → skip model features (reason = NIGHT)
+         └─ day  → SceneClassifier (indoor/outdoor)
+                    ├─ FireSmoke, WetDry, OCR   (always)
+                    └─ if OUTDOOR: Pothole, ElectricPole, Pedestrian
+→ HazardFrameResult (detections, latencies) → spoken / logged (HAZARD_* tags)
+```
+
+## 4. Voice commands (anytime, via BackgroundService)
+- **Foreground (home screen):** speak commands directly.
+- **Background (another app in front):** prefix with **"MITRA"** (wake word required to avoid false triggers).
+- Command handling: `handleSpeechResult` → `processCommand`. A leading wake word and common mis-hears
+  ("tu"→"to", "myntra"→"mitra") are normalized first; contact names use fuzzy matching.
+- **Launching** (open/call/send/navigate) is routed through the **accessibility service**, so it works
+  from the background where a normal service is blocked.
+- See `COMMANDS.md` for the full command list.
+
+## 5. Messages, calls, coexistence
+- **Incoming messages** (WhatsApp/SMS) are read aloud by `MitraNotificationListener`; "reply <msg>" sends via the notification's reply action. (Needs Notification access.)
+- **Phone calls:** during a call the recognizer pauses; ~1.5s after the call ends it restarts automatically.
+- The voice loop, RTSP/camera, and engine run together without disturbing each other.
+
+## Permissions the user must enable
+- **Microphone, Camera, Contacts, Phone** — core.
+- **Accessibility** (MITRA) — for background app launching + auto-actions.
+- **Notification access** — for reading messages aloud.
+- **Display over other apps** + **battery: don't optimize** — for reliable background operation (esp. on Oppo/ColorOS).
+
+## Restore point
+A full backup was taken: `AndroidApp_BACKUP_<date>.tgz` (source + models + config, minus rebuildable `build/`).

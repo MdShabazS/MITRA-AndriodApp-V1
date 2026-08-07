@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Home screen redesigned for blind / low-vision users:
+   - Only two large, high-contrast actions: START and STOP.
+   - Big status text that TalkBack reads aloud.
+   - The technical endpoint (URL) and FPS fields are kept for code compatibility but hidden
+     (visibility="gone") — end users never need them.
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MITRA"
+            android:textColor="#FFFFFF"
+            android:textSize="48sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.15"
+            android:layout_marginBottom="8dp"
+            android:contentDescription="MITRA assistive vision" />
+
+        <TextView
+            android:id="@+id/statusView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/streaming_status_ready"
+            android:textColor="#FFFFFF"
+            android:textSize="24sp"
+            android:gravity="center"
+            android:paddingBottom="4dp" />
+
+        <TextView
+            android:id="@+id/connectionStatusView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/connection_status_ready"
+            android:textColor="#FFCC00"
+            android:textSize="18sp"
+            android:gravity="center"
+            android:paddingBottom="36dp" />
+
+        <!-- Small technical fields (developer/tester use, not for end users) -->
+        <EditText
+            android:id="@+id/endpointInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/streaming_endpoint_hint"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#FFAAAAAA"
+            android:textSize="13sp"
+            android:background="@android:drawable/edit_text"
+            android:inputType="textUri"
+            android:padding="8dp"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/fpsInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/streaming_fps_hint"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#FFAAAAAA"
+            android:textSize="13sp"
+            android:background="@android:drawable/edit_text"
+            android:inputType="number"
+            android:padding="8dp"
+            android:layout_marginBottom="20dp" />
+
+        <Button
+            android:id="@+id/startStreamingButton"
+            android:layout_width="match_parent"
+            android:layout_height="130dp"
+            android:text="@string/start_streaming"
+            android:textSize="30sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#1B7A3D"
+            android:contentDescription="Start MITRA. Double tap to begin."
+            android:layout_marginBottom="20dp" />
+
+        <ImageButton
+            android:id="@+id/voiceButton"
+            android:layout_width="96dp"
+            android:layout_height="96dp"
+            android:layout_gravity="center_horizontal"
+            android:src="@android:drawable/ic_btn_speak_now"
+            android:background="@drawable/bg_voice_button"
+            android:scaleType="centerInside"
+            android:padding="20dp"
+            android:contentDescription="Turn on voice control. Double tap, then speak your command."
+            android:layout_marginBottom="20dp"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/stopStreamingButton"
+            android:layout_width="match_parent"
+            android:layout_height="130dp"
+            android:text="@string/stop_streaming"
+            android:textSize="30sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#B00020"
+            android:contentDescription="Stop MITRA. Double tap to stop." />
+    </LinearLayout>
+</ScrollView>

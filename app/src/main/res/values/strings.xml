@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">MITRA app</string>
+    <string name="streaming_endpoint">ws://151.185.32.13:8765/ws</string>
+    <string name="streaming_status_ready">MITRA app status: ready</string>
+    <string name="connection_status_ready">MITRA app connection: disconnected</string>
+    <string name="start_streaming">Start MITRA</string>
+    <string name="stop_streaming">Stop MITRA</string>
+    <string name="streaming_endpoint_hint">WebSocket endpoint</string>
+    <string name="streaming_fps_hint">FPS</string>
+    <string name="stop_mitra">Stop MITRA</string>
+</resources>

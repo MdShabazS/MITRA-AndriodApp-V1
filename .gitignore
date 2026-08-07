@@ -1,0 +1,50 @@
+# Android/Gradle build outputs
+build/
+app/build/
+.gradle/
+
+# Local SDK path
+local.properties
+
+# IntelliJ/Android Studio
+.idea/
+*.iml
+
+# Kotlin/Java compiled artifacts
+*.class
+out/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+LOGS/
+
+# Python virtual environment
+.venv/
+
+# Kotlin cache
+.kotlin/
+
+# Temp files
+.tmp/
+
+.claude/
+.convert*/
+
+# Generated / share artifacts
+*.apk
+*.aab
+*.zip
+graphify-out/
+manual_test_proof_*/
+model_backups_*/
+outputs/
+share/
+.codex_tmp_tracker/
+
+docs/

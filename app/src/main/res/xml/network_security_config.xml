@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cleartext is scoped to the specific endpoints the app actually uses, instead of being permitted
+  for every domain (risk M2). Base is now secure-by-default; only these hosts allow cleartext:
+
+    10.42.0.1       MITRA hardware device — local RTSP stream (hardware-local, no TLS available)
+    127.0.0.1       localhost — CameraActivity test WebSocket via `adb reverse`
+    151.185.32.13   current default WebSocket endpoint
+    216.48.182.37   remote Q&A WebSocket (BackgroundService / MainActivity)
+    164.52.209.93   remote Q&A WebSocket (fallback server)
+
+  KNOWN RISK: the two remote hosts carry user query data over plaintext ws://. They are whitelisted
+  here to preserve existing behavior, but should move to wss:// (TLS) before real-user launch. Until
+  the server supports TLS this remains a documented, accepted exception — see RELEASE_NOTES.md.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.42.0.1</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">151.185.32.13</domain>
+        <domain includeSubdomains="false">216.48.182.37</domain>
+        <domain includeSubdomains="false">164.52.209.93</domain>
+    </domain-config>
+</network-security-config>

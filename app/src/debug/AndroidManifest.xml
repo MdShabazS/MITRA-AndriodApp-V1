@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  DEBUG-ONLY manifest overlay.
+  The main manifest sets CameraActivity and OfflineTestActivity to exported="false" so they are
+  NOT accidental production entry points in a release build (risk H3). This overlay re-exports them
+  for DEBUG builds only, so `adb shell am start` still works during development and QA. It has no
+  effect on release builds.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+        <activity
+            android:name=".OfflineTestActivity"
+            android:exported="true"
+            tools:node="merge"
+            tools:replace="android:exported" />
+
+        <activity
+            android:name=".CameraActivity"
+            android:exported="true"
+            tools:node="merge"
+            tools:replace="android:exported" />
+    </application>
+</manifest>
