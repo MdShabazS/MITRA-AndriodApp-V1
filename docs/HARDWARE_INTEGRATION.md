@@ -46,6 +46,8 @@ Current assumptions:
 
 For the full hardware stream contract, Android decode path, cloud payload shape, and QA checklist, see `docs/HARDWARE_STREAM_CONTRACT_AND_QA.md`.
 
+If Rahil decides the current firmware/RTSP stack must be reset or rebuilt, follow `docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md` before changing the hardware contract.
+
 ## AI And Frame Pipeline
 
 The app samples frames from the live stream/camera and sends them through the local hazard engine.
@@ -94,6 +96,7 @@ Before changing firmware or hardware stream behavior, check:
 
 - `README.md` for the current app overview
 - `WORKFLOW.md` for the full app flow
+- `docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md` before any hardware reset or firmware rebuild
 - `STREAMING_METADATA_SCHEMA.md` for streaming metadata expectations
 - `app/src/main/AndroidManifest.xml` for Android permissions and services
 - `app/src/main/java/com/unique/visionmate/VideoActivity.kt` for RTSP stream handling

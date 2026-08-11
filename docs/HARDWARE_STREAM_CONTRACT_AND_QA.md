@@ -8,6 +8,8 @@ Purpose:
 - Document how decoded frames are sampled for local AI and cloud upload.
 - Record physical hardware stream QA evidence as tests are run.
 
+If Rahil needs to reset or rebuild the firmware/RTSP stack, follow `docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md` before changing this contract.
+
 ## Current Hardware Feed Contract
 
 | Item | Current value |

@@ -39,6 +39,7 @@ Before doing deep code work, read:
 - `docs/WORK_LOG.md`
 - `docs/HARDWARE_INTEGRATION.md`
 - `docs/HARDWARE_STREAM_CONTRACT_AND_QA.md`
+- `docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md`
 - `docs/DOCUMENTATION_STANDARDS.md`
 
 `AGENTS.md` asks future AI agents to use the generated knowledge graph first for structure and call graph questions. At the time of this handoff, `graphify-out/` is not present in the checked workspace. Regenerate the Android knowledge graph before any large architecture or symbol-level task.
@@ -675,6 +676,8 @@ rtsp://10.42.0.1:8554/stream
 ```
 
 The app can remember the last working RTSP transport, but hardware should still support repeat connections reliably. The stream should start quickly after the phone joins the hardware WiFi, and reconnects should not require app restart.
+
+If Rahil needs to reset or rebuild the hardware firmware/RTSP stack, use `docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md`. Do not wipe the current working firmware before backing up WiFi, camera, encoder, and RTSP configuration.
 
 Please provide or confirm:
 

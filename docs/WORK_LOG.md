@@ -4,6 +4,53 @@ This file records completed project work in a format that app, AI, and hardware 
 
 ## 2026-08-11
 
+### Hardware Firmware Rebuild Spec For Rahil
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- Added a dedicated hardware firmware rebuild/reset specification for Rahil.
+- Defined that reset-from-scratch is a fallback, not the first step.
+- Captured the Android contract that hardware must not break: `MITRA_DEVICE`, `10.42.0.1`, RTSP port `8554`, path `/stream`, and full URL `rtsp://10.42.0.1:8554/stream`.
+- Documented low-latency encoder targets: H.264, 640 x 480, 25/30 FPS, 1-second GOP, no B-frames, low-latency mode, and stable timestamps.
+- Required timestamp overlay or frame counter before final latency testing.
+- Added Mac ffprobe/ffplay checks and Android MITRA app pass/fail criteria for 10-minute stream testing.
+
+Files changed:
+
+- `docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md`
+- `docs/HARDWARE_INTEGRATION.md`
+- `docs/HARDWARE_STREAM_CONTRACT_AND_QA.md`
+- `docs/MITRA_PROJECT_MASTER_HANDOFF.md`
+- `README.md`
+- `docs/WORK_LOG.md`
+
+App impact:
+
+- No runtime app behavior changed.
+
+Hardware impact:
+
+- Gives Rahil a safe rebuild path if encoder/RTSP tuning cannot fix the delay.
+- Prevents firmware reset from accidentally changing the app-facing WiFi/RTSP contract.
+
+AI/model impact:
+
+- No model behavior changed.
+- Reinforces that stream latency and frame freshness directly affect local AI accuracy.
+
+Validation:
+
+- Documentation-only change.
+- Cross-linked from README, hardware integration guide, and master handoff.
+
+Follow-ups:
+
+- Rahil should back up current firmware/config before any reset.
+- Rahil should add timestamp overlay/frame counter and run 10-minute Mac + Android stream tests.
+- App team should retest with the corrected Android build after the phone is reconnected.
+
 ### RTSP Latency Mitigation And Local Alert Stabilization
 
 Owner: MdShabazS / Codex
