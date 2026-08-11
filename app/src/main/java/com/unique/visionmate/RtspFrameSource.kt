@@ -59,13 +59,14 @@ class RtspFrameSource(
         private const val FIRST_FRAME_AFTER_VOUT_GRACE_MS = 4_000L
         private const val WATCHDOG_INTERVAL_MS = 800L
         private const val RECONNECT_DELAY_MS = 450L
+        private const val RECONNECT_ATTEMPT_TIMEOUT_MS = 6_000L
         private const val FRAME_DUMP_INTERVAL_MS = 2_000L
         private const val FRAME_DUMP_MAX = 40
         private const val CAPTURE_FAILURE_LOG_INTERVAL_MS = 2_000L
 
         const val PREF_DUMP_FRAMES = "offload.debug.dumpFrames"
         const val PREF_LAST_GOOD_TRANSPORT = "rtsp.last_good_transport"
-        const val BUILD_TAG = "rtsp-libvlc-low-latency-refresh"
+        const val BUILD_TAG = "rtsp-libvlc-low-latency-refresh-guard"
     }
 
     private val mainHandler = Handler(context.mainLooper)
@@ -119,6 +120,7 @@ class RtspFrameSource(
         running = false
         mainHandler.removeCallbacks(watchdog)
         mainHandler.removeCallbacks(reconnectRunnable)
+        mainHandler.removeCallbacks(reconnectAttemptTimeoutRunnable)
         readerHandler.removeCallbacks(captureTick)
         unregisterThermal()
         unregisterSurfaceCallback()
@@ -208,8 +210,7 @@ class RtspFrameSource(
                 }
                 MediaPlayer.Event.Buffering -> callbacks.onStatus("buffering:${transportMode.statusLabel}")
                 MediaPlayer.Event.Playing -> {
-                    reconnectScheduled = false
-                    mainHandler.removeCallbacks(reconnectRunnable)
+                    clearReconnectState()
                     callbacks.onStatus("live:${transportMode.statusLabel}")
                     Log.i(TAG, "LibVLC playing transport=${transportMode.statusLabel}")
                 }
@@ -220,13 +221,13 @@ class RtspFrameSource(
                     Log.e(TAG, "LibVLC stream error transport=${transportMode.statusLabel}")
                     VideoFrameCache.clear()
                     callbacks.onStatus("error:${transportMode.statusLabel}")
+                    clearReconnectState()
                     scheduleReconnect("error")
                 }
                 MediaPlayer.Event.Vout -> {
                     lastVideoOutputMs = SystemClock.elapsedRealtime()
                     if (capturesOk == 0L && reconnectScheduled) {
-                        reconnectScheduled = false
-                        mainHandler.removeCallbacks(reconnectRunnable)
+                        clearReconnectState()
                         Log.i(TAG, "LibVLC vout arrived; keeping transport=${transportMode.statusLabel} for first frame")
                     }
                     Log.i(TAG, "LibVLC vout count=${event.voutCount}")
@@ -336,8 +337,7 @@ class RtspFrameSource(
                 Log.i(TAG, "first frame captured ${dest.width}x${dest.height} (PixelCopy)")
                 rememberLastGoodTransport()
             }
-            reconnectScheduled = false
-            mainHandler.removeCallbacks(reconnectRunnable)
+            clearReconnectState()
             val out = dest.copy(Bitmap.Config.ARGB_8888, false)
             VideoFrameCache.publish(out, now)
             maybeDump(out, now)
@@ -413,11 +413,27 @@ class RtspFrameSource(
     }
 
     private val reconnectRunnable = Runnable {
-        reconnectScheduled = false
         if (running) {
             lastFrameMs = SystemClock.elapsedRealtime()
             startPlayerWhenSurfaceReady("reconnect", forceRestart = true)
+            mainHandler.removeCallbacks(reconnectAttemptTimeoutRunnable)
+            mainHandler.postDelayed(reconnectAttemptTimeoutRunnable, RECONNECT_ATTEMPT_TIMEOUT_MS)
+        } else {
+            clearReconnectState()
         }
+    }
+
+    private val reconnectAttemptTimeoutRunnable = Runnable {
+        if (!running || !reconnectScheduled) return@Runnable
+        Log.w(TAG, "reconnect attempt timed out; retrying")
+        reconnectScheduled = false
+        scheduleReconnect("reconnect-timeout")
+    }
+
+    private fun clearReconnectState() {
+        reconnectScheduled = false
+        mainHandler.removeCallbacks(reconnectRunnable)
+        mainHandler.removeCallbacks(reconnectAttemptTimeoutRunnable)
     }
 
     private val watchdog = object : Runnable {

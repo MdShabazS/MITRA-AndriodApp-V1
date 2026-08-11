@@ -4,6 +4,52 @@ This file records completed project work in a format that app, AI, and hardware 
 
 ## 2026-08-11
 
+### 15-Minute Hardware Stream Retest And RTSP Reconnect Guard
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- Ran a 15-minute physical phone + MITRA hardware WiFi retest with cloud skipped.
+- Captured logcat, screenshots, activity, WiFi, and battery evidence under `docs/test-evidence/2026-08-11-mitra-15min-retest/`.
+- Confirmed Android displayed fresh decoded frames at 2, 5, 10, 15, and end checkpoints.
+- Found and fixed a repeated RTSP live-refresh reconnect loop in `RtspFrameSource`.
+- Documented that local fire/smoke TTS produced repeated false emergency speech and remains a product blocker.
+
+Files changed:
+
+- `app/src/main/java/com/unique/visionmate/RtspFrameSource.kt`
+- `docs/test-evidence/2026-08-11-mitra-15min-retest/MITRA_15MIN_RETEST_REPORT.md`
+- `docs/HARDWARE_INTEGRATION.md`
+- `docs/WORK_LOG.md`
+
+App impact:
+
+- RTSP reconnect refresh now stays in a guarded reconnect state until LibVLC plays, a fresh frame arrives, or a bounded timeout retries.
+- No local fire/smoke suppression hack was added; false emergency speech remains documented as a real blocker.
+
+Hardware impact:
+
+- Hardware stream stayed visible through the run, but two OPPO decoder stutter events appeared near/after the 15-minute marker.
+- Exact glass-to-glass latency still needs hardware timestamp overlay or embedded source timestamps.
+
+AI/model impact:
+
+- Local fire/smoke model produced false positive spoken alerts on the fixed indoor hardware feed.
+- Fire/smoke model validation or recalibration with real MITRA hardware frames is required before product release.
+
+Validation:
+
+- Physical 15-minute retest evidence captured.
+- Follow-up build/unit/lint validation recorded in the task response.
+
+Follow-ups:
+
+- Install the reconnect-guard APK and repeat the 15-minute hardware test.
+- Keep cloud/WebSocket testing pending until the hardware stream path is stable.
+- Add hardware timestamp overlay/source timestamp support for precise latency measurement.
+- Validate/recalibrate local fire/smoke against real MITRA hardware frames before enabling product emergency speech.
+
 ### VLC Hardware Latency Comparison Note
 
 Owner: MdShabazS / Codex

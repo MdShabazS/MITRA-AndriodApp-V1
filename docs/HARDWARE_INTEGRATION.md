@@ -35,7 +35,7 @@ Current assumptions:
 - First app transport attempt: RTSP over TCP
 - Fallback transport: LibVLC automatic/UDP mode
 - Current Android LibVLC cache target: 60 ms for network/live/RTSP cache
-- Long-run mitigation: Android refreshes the live RTSP player after 5 minutes to clear possible decoder/RTSP backlog
+- Long-run mitigation: Android refreshes the live RTSP player after 5 minutes to clear possible decoder/RTSP backlog. The 2026-08-11 retest found a repeated-refresh loop; Android now keeps reconnect state active until LibVLC reaches `Playing`, a fresh frame arrives, or a bounded timeout retries.
 - App decoded sample format: `ARGB_8888` bitmap copied from the displayed `SurfaceView`
 - App sample cadence for the decoded frame cache: about 2.2 FPS by default
 - Cloud upload format: JPEG, quality 70, MessagePack WebSocket payload
@@ -89,6 +89,7 @@ Current user-facing local alert behavior:
 - Round-robin detector results are cached for at most 2500 ms.
 - NIGHT clears cached detections.
 - INDOOR clears cached pothole and electric-pole detections.
+- 2026-08-11 15-minute hardware retest: local fire/smoke speech produced repeated false emergency alerts on the fixed indoor hardware feed. Treat local fire/smoke spoken guidance as a blocker until the model is validated or recalibrated against real MITRA hardware frames.
 
 ## Hardware Engineer Checklist
 
@@ -120,4 +121,5 @@ These details should be filled in as the hardware implementation becomes stable:
 - Expected boot time before WiFi/RTSP is available
 - Power behavior during long sessions
 - Thermal behavior during continuous streaming
+- Timestamp overlay or embedded source frame timestamp for exact glass-to-glass latency measurement
 - Any firmware OTA or config mechanism
