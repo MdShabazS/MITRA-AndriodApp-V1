@@ -253,7 +253,7 @@ internal class Pipeline(
             skipped[feature] = SkipReason.EXCEPTION
             observer.onTelemetry(TelemetryEvent.FeatureException(feature, e.message ?: e::class.java.simpleName))
         } finally {
-            latencies[feature] = SystemClock.elapsedRealtime() - start
+            latencies[feature] = (SystemClock.elapsedRealtime() - start).coerceAtLeast(1L)
         }
     }
 

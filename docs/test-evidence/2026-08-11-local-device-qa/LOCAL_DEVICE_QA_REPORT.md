@@ -282,9 +282,9 @@ Note:
 2. Add a stream latency/stutter recovery path in Android. If decoder/render FPS collapses or visual delay crosses a threshold, reconnect the RTSP player and clear buffered frames. Partially implemented after this report with a 5-minute live-session refresh.
 3. Tune Android RTSP player options for lower accumulated latency and compare TCP vs UDP over a 10-minute run. Partially implemented after this report by lowering LibVLC network/live/RTSP cache to 60 ms.
 4. Ask hardware to confirm encoder settings: FPS, bitrate, GOP/keyframe interval, B-frames disabled/enabled, RTSP server buffering, and timestamp generation.
-5. Stabilize spoken local hazards: require consecutive detections or short-window persistence before speaking wet, pothole, fire/smoke, and pedestrian alerts. Partially implemented after this report with stricter spoken-alert thresholds.
+5. Stabilize spoken local hazards: require consecutive detections or short-window persistence before speaking wet, pothole, fire/smoke, and pedestrian alerts. Implemented after this report with fresh-evidence confirmation for local hazards.
 6. Add a TTL for cached feature detections so old pothole/wet/person detections cannot be spoken after the scene has changed. Implemented after this report with a 2500 ms cache TTL plus NIGHT/INDOOR cache clearing.
-7. Raise or split thresholds: keep model detection thresholds for logs, but use higher `spoken alert` thresholds for user-facing TTS. Implemented after this report for local spoken guidance.
+7. Raise or split thresholds: keep model detection thresholds for logs, but use higher `spoken alert` thresholds for user-facing TTS. Superseded by the fresh-evidence confirmation rule so wet/pothole are not hidden by a hard speech threshold.
 8. Revisit navigation priority so a fresh centered person detection is not hidden by stale/weak pothole or wet detections.
 
 ## Recommended Next Tests

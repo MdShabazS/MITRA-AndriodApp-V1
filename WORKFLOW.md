@@ -43,8 +43,9 @@ frame → DayNightGate
 
 To reduce false spoken hazards during long RTSP sessions, reused round-robin detections expire after
 about 2500 ms. NIGHT clears cached detections, and INDOOR clears cached pothole/electric-pole results.
-Spoken TTS uses stricter local alert thresholds than the model manifest: fire/smoke 0.80, wet/dry
-0.70, pothole 0.70, electric pole 0.70, pedestrian 0.35.
+Spoken local hazard TTS does not raise or hide model detections. The model manifest remains the
+detection source of truth; user-facing hazard speech requires confirmed fresh detections from real
+feature runs, not one cached or stale frame.
 
 ## 4. Voice commands (anytime, via BackgroundService)
 - **Foreground (home screen):** speak commands directly.

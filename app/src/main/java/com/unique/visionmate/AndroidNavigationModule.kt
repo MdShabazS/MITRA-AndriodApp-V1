@@ -42,11 +42,17 @@ data class NavigationDecision(
 object AndroidNavigationModule {
 
     private val PERSON_LABELS = setOf("person", "pedestrian", "people")
-    private const val LOCAL_FIRE_SMOKE_SPEAK_CONFIDENCE = 0.80f
-    private const val LOCAL_WET_DRY_SPEAK_CONFIDENCE = 0.70f
-    private const val LOCAL_POTHOLE_SPEAK_CONFIDENCE = 0.70f
-    private const val LOCAL_ELECTRIC_POLE_SPEAK_CONFIDENCE = 0.70f
-    private const val LOCAL_PEDESTRIAN_SPEAK_CONFIDENCE = 0.35f
+    private const val LOCAL_EVIDENCE_WINDOW_MS = 6_000L
+    private const val LOCAL_HAZARD_CONFIRMATIONS_REQUIRED = 2
+
+    private data class LocalEvidenceKey(val feature: Feature, val label: String)
+    private data class LocalEvidence(
+        var confirmations: Int,
+        var lastFrameId: Long,
+        var lastSeenMs: Long
+    )
+
+    private val localEvidence = mutableMapOf<LocalEvidenceKey, LocalEvidence>()
 
     fun evaluate(
         frameId: String?,
@@ -343,13 +349,14 @@ object AndroidNavigationModule {
         if (localResult == null) return emptyList()
         val hazardFeatures = listOf(Feature.FIRE_SMOKE, Feature.WET_DRY, Feature.POTHOLE, Feature.ELECTRIC_POLE)
         return hazardFeatures.flatMap { feature ->
-            localResult.detectionsByFeature[feature].orEmpty().filter { detection ->
-                detection.score >= localHazardSpeakThreshold(feature)
-            }.map { detection ->
+            if (!localResult.isFreshLocalRun(feature)) return@flatMap emptyList()
+            localResult.detectionsByFeature[feature].orEmpty().mapNotNull { detection ->
+                val zone = detection.zone()
+                if (!isConfirmedLocalHazard(localResult, feature, detection)) return@mapNotNull null
                 NavHazard(
                     type = detection.label.ifBlank { feature.name.lowercase() },
                     confidence = detection.score.toDouble(),
-                    zone = detection.zone(),
+                    zone = zone,
                     distanceM = null,
                     source = "android_tflite"
                 )
@@ -359,9 +366,8 @@ object AndroidNavigationModule {
 
     private fun extractLocalPedestrians(localResult: HazardFrameResult?): List<NavObject> {
         if (localResult == null) return emptyList()
-        return localResult.detectionsByFeature[Feature.PEDESTRIAN].orEmpty().filter { detection ->
-            detection.score >= LOCAL_PEDESTRIAN_SPEAK_CONFIDENCE
-        }.map { detection ->
+        if (!localResult.isFreshLocalRun(Feature.PEDESTRIAN)) return emptyList()
+        return localResult.detectionsByFeature[Feature.PEDESTRIAN].orEmpty().map { detection ->
             NavObject(
                 label = detection.label.ifBlank { "person" },
                 confidence = detection.score.toDouble(),
@@ -371,12 +377,48 @@ object AndroidNavigationModule {
         }
     }
 
-    private fun localHazardSpeakThreshold(feature: Feature): Float = when (feature) {
-        Feature.FIRE_SMOKE -> LOCAL_FIRE_SMOKE_SPEAK_CONFIDENCE
-        Feature.WET_DRY -> LOCAL_WET_DRY_SPEAK_CONFIDENCE
-        Feature.POTHOLE -> LOCAL_POTHOLE_SPEAK_CONFIDENCE
-        Feature.ELECTRIC_POLE -> LOCAL_ELECTRIC_POLE_SPEAK_CONFIDENCE
-        else -> 1.0f
+    @Synchronized
+    private fun isConfirmedLocalHazard(
+        result: HazardFrameResult,
+        feature: Feature,
+        detection: Detection
+    ): Boolean {
+        val now = result.tsMs
+        localEvidence.entries.removeAll { now - it.value.lastSeenMs > LOCAL_EVIDENCE_WINDOW_MS }
+
+        val key = LocalEvidenceKey(
+            feature = feature,
+            label = detection.label.ifBlank { feature.name.lowercase() }.lowercase()
+        )
+        val evidence = localEvidence[key]
+        val updated = when {
+            evidence == null -> LocalEvidence(1, result.frameId, now)
+            evidence.lastFrameId == result.frameId -> evidence
+            now - evidence.lastSeenMs > LOCAL_EVIDENCE_WINDOW_MS -> {
+                evidence.confirmations = 1
+                evidence.lastFrameId = result.frameId
+                evidence.lastSeenMs = now
+                evidence
+            }
+            else -> {
+                evidence.confirmations += 1
+                evidence.lastFrameId = result.frameId
+                evidence.lastSeenMs = now
+                evidence
+            }
+        }
+        localEvidence[key] = updated
+        return updated.confirmations >= LOCAL_HAZARD_CONFIRMATIONS_REQUIRED
+    }
+
+    private fun HazardFrameResult.isFreshLocalRun(feature: Feature): Boolean {
+        return executedFeatures.contains(feature) && (latenciesMs[feature] ?: 0L) > 0L
+    }
+
+    internal fun resetLocalEvidenceForTests() {
+        synchronized(this) {
+            localEvidence.clear()
+        }
     }
 
     private fun Detection.zone(): String {

@@ -17,7 +17,7 @@ This branch contains the tested OPPO-working backup version from `BACKUPS/oppo_w
 - If hardware is unavailable, the app falls back to the phone back camera.
 - Frames are sampled for local inference and cloud upload; the live RTSP display can still decode around 30 FPS.
 - Local TFLite models run hazard features; navigation guidance is integrated in the Android app flow.
-- TTS speaks guidance with throttling, cached-detection expiry, and stricter spoken-alert thresholds to reduce repeated or weak hazard alerts.
+- TTS speaks guidance with throttling, cached-detection expiry, and fresh-frame confirmation for local hazards to reduce repeated or stale alerts.
 
 ## Main Modules
 

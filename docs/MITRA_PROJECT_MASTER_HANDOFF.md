@@ -215,7 +215,7 @@ Local model and inference notes:
 - Reused round-robin detector results expire after about 2500 ms.
 - NIGHT clears cached detections.
 - INDOOR clears cached pothole and electric-pole detections.
-- Android spoken guidance uses stricter thresholds than raw model logging: fire/smoke 0.80, wet/dry 0.70, pothole 0.70, electric pole 0.70, pedestrian 0.35.
+- Android spoken guidance keeps model thresholds in the manifest and requires confirmed fresh local hazard detections from real feature runs before TTS.
 
 ### 6.6 Cloud Streaming Flow
 

@@ -81,8 +81,9 @@ If the hardware changes camera orientation, resolution, compression, exposure be
 
 Current user-facing local alert behavior:
 
-- Android filters local detections with higher spoken-alert thresholds before TTS.
-- Current spoken thresholds: fire/smoke 0.80, wet/dry 0.70, pothole 0.70, electric pole 0.70, pedestrian 0.35.
+- Android keeps model detections controlled by `app/src/main/assets/models/manifest.json`.
+- Android does not silence wet/pothole by raising hard spoken thresholds.
+- User-facing local hazard speech requires confirmed fresh detections from real feature runs.
 - Round-robin detector results are cached for at most 2500 ms.
 - NIGHT clears cached detections.
 - INDOOR clears cached pothole and electric-pole detections.

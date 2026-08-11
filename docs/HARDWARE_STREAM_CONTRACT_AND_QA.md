@@ -115,8 +115,9 @@ The app status labels this path as "Local 1 FPS" because guidance/cloud cadence 
 Spoken local-alert stabilization:
 
 - Model thresholds still come from `app/src/main/assets/models/manifest.json`.
-- Android uses higher user-facing speech thresholds before turning local detections into spoken safety guidance.
-- Current spoken thresholds: fire/smoke 0.80, wet/dry 0.70, pothole 0.70, electric pole 0.70, pedestrian 0.35.
+- Android does not raise hard wet/pothole thresholds just to silence false alerts.
+- User-facing local hazard speech requires confirmed fresh detections from real feature runs.
+- A cached detector result is not allowed to create a new spoken hazard confirmation.
 - Round-robin feature detections are cached for at most 2500 ms.
 - NIGHT clears cached detections.
 - INDOOR scene results clear cached pothole and electric-pole detections so old outdoor-only hazards are not spoken in a room.

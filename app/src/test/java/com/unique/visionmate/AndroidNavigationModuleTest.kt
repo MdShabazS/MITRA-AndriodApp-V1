@@ -7,9 +7,15 @@ import com.unique.visionmate.engine.HazardFrameResult
 import com.unique.visionmate.engine.SceneType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 class AndroidNavigationModuleTest {
+
+    @Before
+    fun resetLocalEvidence() {
+        AndroidNavigationModule.resetLocalEvidenceForTests()
+    }
 
     @Test
     fun evaluate_nightFrame_waitsWithLimitedGuidance() {
@@ -27,14 +33,30 @@ class AndroidNavigationModuleTest {
     }
 
     @Test
-    fun evaluate_localFireSmoke_stopsImmediately() {
-        val decision = AndroidNavigationModule.evaluate(
+    fun evaluate_confirmedLocalFireSmoke_stops() {
+        AndroidNavigationModule.evaluate(
             frameId = "frame-fire",
             seq = 12,
             localResult = result(
+                frameId = 1,
+                tsMs = 100,
                 detections = mapOf(
                     Feature.FIRE_SMOKE to listOf(
                         Detection("smoke", 0.91f, floatArrayOf(0.35f, 0.2f, 0.65f, 0.8f))
+                    )
+                )
+            ),
+            cloudData = emptyMap()
+        )
+        val decision = AndroidNavigationModule.evaluate(
+            frameId = "frame-fire-confirmed",
+            seq = 12,
+            localResult = result(
+                frameId = 2,
+                tsMs = 1_100,
+                detections = mapOf(
+                    Feature.FIRE_SMOKE to listOf(
+                        Detection("smoke", 0.89f, floatArrayOf(0.35f, 0.2f, 0.65f, 0.8f))
                     )
                 )
             ),
@@ -212,13 +234,29 @@ class AndroidNavigationModuleTest {
 
     @Test
     fun evaluate_localWetWithoutDepth_doesNotInventRightTurn() {
-        val decision = AndroidNavigationModule.evaluate(
+        AndroidNavigationModule.evaluate(
             frameId = "frame-wet",
             seq = 16,
             localResult = result(
+                frameId = 1,
+                tsMs = 100,
                 detections = mapOf(
                     Feature.WET_DRY to listOf(
                         Detection("wet", 0.80f, floatArrayOf(0.35f, 0.55f, 0.65f, 0.95f))
+                    )
+                )
+            ),
+            cloudData = emptyMap()
+        )
+        val decision = AndroidNavigationModule.evaluate(
+            frameId = "frame-wet-confirmed",
+            seq = 16,
+            localResult = result(
+                frameId = 2,
+                tsMs = 1_100,
+                detections = mapOf(
+                    Feature.WET_DRY to listOf(
+                        Detection("wet", 0.72f, floatArrayOf(0.35f, 0.55f, 0.65f, 0.95f))
                     )
                 )
             ),
@@ -232,14 +270,14 @@ class AndroidNavigationModuleTest {
     }
 
     @Test
-    fun evaluate_weakLocalWetWithoutDepth_doesNotSpeakHazard() {
+    fun evaluate_singleLocalWetFrame_waitsForConfirmation() {
         val decision = AndroidNavigationModule.evaluate(
-            frameId = "frame-weak-wet",
+            frameId = "frame-single-wet",
             seq = 19,
             localResult = result(
                 detections = mapOf(
                     Feature.WET_DRY to listOf(
-                        Detection("wet", 0.45f, floatArrayOf(0.35f, 0.55f, 0.65f, 0.95f))
+                        Detection("wet", 0.80f, floatArrayOf(0.35f, 0.55f, 0.65f, 0.95f))
                     )
                 )
             ),
@@ -276,18 +314,20 @@ class AndroidNavigationModuleTest {
     }
 
     private fun result(
+        frameId: Long = 1,
+        tsMs: Long = 100,
         dayNight: DayNight = DayNight.DAY,
         sceneType: SceneType = SceneType.OUTDOOR,
         detections: Map<Feature, List<Detection>> = emptyMap()
     ): HazardFrameResult = HazardFrameResult(
-        frameId = 1,
-        tsMs = 100,
+        frameId = frameId,
+        tsMs = tsMs,
         dayNight = dayNight,
         sceneType = sceneType,
         executedFeatures = detections.keys,
         skippedFeatures = emptyMap(),
         detectionsByFeature = detections,
-        latenciesMs = emptyMap(),
+        latenciesMs = detections.keys.associateWith { 10L },
         skipReason = null
     )
 }

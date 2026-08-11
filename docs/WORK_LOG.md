@@ -15,8 +15,10 @@ Summary:
 - Added a 5-minute live RTSP session refresh to clear possible decoder/RTSP backlog during long runs.
 - Added a 2500 ms TTL for reused round-robin detector results so stale pothole/wet/person detections are not treated as current forever.
 - Cleared cached detections on NIGHT, and cleared cached pothole/electric-pole detections when the scene is INDOOR.
-- Added stricter spoken-alert thresholds for local TTS: fire/smoke 0.80, wet/dry 0.70, pothole 0.70, electric pole 0.70, pedestrian 0.35.
-- Added tests for weak wet suppression and person priority over weak local hazards.
+- Replaced the earlier threshold-only spoken-alert filter with a fresh-evidence confirmation rule.
+- Wet/pothole/fire/electric-pole detections are not disabled or hidden by raised speech thresholds.
+- User-facing local hazard TTS now requires confirmed fresh detections from real feature runs; cached reused results cannot create new confirmations.
+- Added tests for single-frame wet suppression, confirmed wet speech, confirmed fire/smoke speech, and person priority over weak local hazards.
 
 Files changed:
 
@@ -34,7 +36,7 @@ App impact:
 
 - Hardware RTSP should accumulate less buffer during longer runs.
 - If the RTSP player still carries delay, the 5-minute refresh should recover without requiring a manual app restart.
-- Weak local wet/pothole/fire/electric detections are less likely to produce spoken warnings.
+- Single-frame or cached local wet/pothole/fire/electric detections are less likely to produce spoken warnings.
 - Old cached detector results are expired before they can keep driving TTS.
 
 Hardware impact:
@@ -45,15 +47,15 @@ Hardware impact:
 AI/model impact:
 
 - Model files and model manifest thresholds did not change.
-- Only Android's user-facing spoken-alert filter changed.
-- Local inference result logs may still contain lower-confidence detections; TTS now uses stricter thresholds.
+- Android keeps model manifest thresholds as the detection source of truth.
+- Local inference result logs still contain model detections; TTS now uses fresh-evidence confirmation instead of hard raised wet/pothole thresholds.
 
 Validation:
 
 - `:engine:testDebugUnitTest` passed.
 - `:app:testDebugUnitTest` passed.
 - `:app:assembleDebug` passed.
-- Rebuilt debug APK installed successfully on OPPO device `92edef11`.
+- Earlier rebuilt debug APK installed successfully on OPPO device `92edef11`; the corrected confirmation build still needs install after ADB reconnects.
 
 Follow-ups:
 
@@ -91,7 +93,7 @@ Hardware impact:
 AI/model impact:
 
 - Local hazard execution is alive, but spoken hazard accuracy is not release-ready.
-- Next app fixes should add temporal confirmation, cached-detection TTLs, higher spoken-alert thresholds, and better priority handling between person and stale/weak hazards.
+- Next app fixes should add temporal confirmation, cached-detection TTLs, model calibration, and better priority handling between person and stale/weak hazards.
 
 Validation:
 
