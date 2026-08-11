@@ -4,6 +4,48 @@ This file records completed project work in a format that app, AI, and hardware 
 
 ## 2026-08-11
 
+### Local QA Follow-up: Latency And Spoken Alert Accuracy
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- Updated the local device QA report after operator observations from the live hardware run.
+- Corrected the voice-command result: the Mac did not audibly speak the test phrase, so live voice command execution was not validly tested.
+- Recorded stream latency drift: about 2.5-2.9 seconds in the first 0-4 minutes, growing to about 8 seconds after roughly 7 minutes.
+- Correlated the latency drift with logcat decoder/render stutter evidence from `c2.qti.avc.decoder` and OPPO `atlas_event_video_stutter` logs.
+- Recorded false/inconsistent local hazard speech during a constant indoor view, including wet/pothole alerts and inconsistent person caution.
+
+Files changed:
+
+- `docs/test-evidence/2026-08-11-local-device-qa/LOCAL_DEVICE_QA_REPORT.md`
+- `docs/WORK_LOG.md`
+
+App impact:
+
+- No runtime app behavior changed.
+
+Hardware impact:
+
+- Hardware stream freshness is now marked as a fix/retest item, not a full pass.
+- Hardware engineer should confirm encoder FPS, bitrate, GOP/keyframe interval, B-frame setting, RTSP buffering, and timestamp behavior.
+
+AI/model impact:
+
+- Local hazard execution is alive, but spoken hazard accuracy is not release-ready.
+- Next app fixes should add temporal confirmation, cached-detection TTLs, higher spoken-alert thresholds, and better priority handling between person and stale/weak hazards.
+
+Validation:
+
+- Documentation-only follow-up based on saved local logs and operator observations.
+
+Follow-ups:
+
+- Keep cloud testing pending.
+- Implement stream latency/stutter recovery.
+- Implement spoken alert stabilization before the next pin-to-pin retest.
+- Retest voice commands with real human speech near the phone.
+
 ### Local Device QA Evidence Pass
 
 Owner: MdShabazS / Codex
