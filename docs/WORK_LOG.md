@@ -4,18 +4,19 @@ This file records completed project work in a format that app, AI, and hardware 
 
 ## 2026-08-11
 
-### Hardware Firmware Rebuild Spec For Rahil
+### Product-Level Hardware Spec For Rahil
 
 Owner: MdShabazS / Codex
 
 Summary:
 
-- Added a dedicated hardware firmware rebuild/reset specification for Rahil.
+- Expanded the hardware firmware rebuild/reset specification into a product-level implementation guide for Rahil.
 - Defined that reset-from-scratch is a fallback, not the first step.
 - Captured the Android contract that hardware must not break: `MITRA_DEVICE`, `10.42.0.1`, RTSP port `8554`, path `/stream`, and full URL `rtsp://10.42.0.1:8554/stream`.
 - Documented low-latency encoder targets: H.264, 640 x 480, 25/30 FPS, 1-second GOP, no B-frames, low-latency mode, and stable timestamps.
 - Required timestamp overlay or frame counter before final latency testing.
 - Added Mac ffprobe/ffplay checks and Android MITRA app pass/fail criteria for 10-minute stream testing.
+- Added product-level definition of done, fail conditions, required evidence package, WiFi/AP requirements, camera requirements, RTSP queue policy, and rebuild phases.
 
 Files changed:
 
@@ -32,7 +33,7 @@ App impact:
 
 Hardware impact:
 
-- Gives Rahil a safe rebuild path if encoder/RTSP tuning cannot fix the delay.
+- Gives Rahil a detailed product-level path to tune or rebuild the hardware stream stack if encoder/RTSP tuning cannot fix the delay.
 - Prevents firmware reset from accidentally changing the app-facing WiFi/RTSP contract.
 
 AI/model impact:
@@ -44,6 +45,7 @@ Validation:
 
 - Documentation-only change.
 - Cross-linked from README, hardware integration guide, and master handoff.
+- Reviewed for product gates covering delay growth, first frame, corruption, reconnect, timestamp proof, and Android compatibility.
 
 Follow-ups:
 
