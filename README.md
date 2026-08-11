@@ -13,10 +13,11 @@ This branch contains the tested OPPO-working backup version from `BACKUPS/oppo_w
 - If the phone is already connected to MITRA WiFi, it skips re-scanning and starts the stream path.
 - Hardware video is read from `rtsp://10.42.0.1:8554/stream`.
 - RTSP uses the tested hardware stream path and fallback behavior from the OPPO-working backup.
+- RTSP playback uses low LibVLC cache settings and a 5-minute live-session refresh to reduce long-run buffer buildup.
 - If hardware is unavailable, the app falls back to the phone back camera.
 - Frames are sampled for local inference and cloud upload; the live RTSP display can still decode around 30 FPS.
 - Local TFLite models run hazard features; navigation guidance is integrated in the Android app flow.
-- TTS speaks guidance with throttling to avoid repeated voice spam.
+- TTS speaks guidance with throttling, cached-detection expiry, and stricter spoken-alert thresholds to reduce repeated or weak hazard alerts.
 
 ## Main Modules
 

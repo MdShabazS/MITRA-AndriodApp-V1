@@ -49,15 +49,17 @@ There is one canonical decoded frame bus: `VideoFrameCache`. The visible preview
 
 - LibVLC options:
   - `--no-audio`
-  - `--network-caching=150`
-  - `--live-caching=150`
+  - `--network-caching=60`
+  - `--live-caching=60`
+  - `--rtsp-caching=60`
   - `--clock-jitter=0`
   - `--clock-synchro=0`
   - `--drop-late-frames`
   - `--skip-frames`
 - Media options:
-  - `:network-caching=150`
-  - `:live-caching=150`
+  - `:network-caching=60`
+  - `:live-caching=60`
+  - `:rtsp-caching=60`
   - `:clock-jitter=0`
   - `:clock-synchro=0`
   - `:drop-late-frames`
@@ -69,6 +71,7 @@ There is one canonical decoded frame bus: `VideoFrameCache`. The visible preview
   - After LibVLC reports video output (`vout`), PixelCopy gets a 4000 ms grace window before the first-frame watchdog reconnects.
   - If `vout` arrives while a first-frame reconnect is already scheduled, Android cancels that pending reconnect and keeps the current transport alive for PixelCopy.
 - Live stream stall threshold after frames start: 4000 ms
+- Live-session refresh: after 5 minutes of a running RTSP session, Android reconnects the player to clear possible decoder/RTSP backlog.
 - Reconnect delay: 450 ms
 - Transport memory:
   - The first transport that produces a captured frame is saved in app preferences.
@@ -90,6 +93,7 @@ Important distinction:
 - Hardware RTSP display can decode/render at the hardware stream's native cadence.
 - Android AI/cloud sampling is intentionally lower cadence.
 - Cloud upload is currently fixed at 1 FPS, even if RTSP decode/sample FPS is higher.
+- The app's latest-frame age measures when Android copied the displayed surface, not true camera-to-phone latency. Hardware should provide a timestamp overlay or embedded source timestamp for exact latency measurement.
 
 ## Local AI Frame Path
 
@@ -107,6 +111,15 @@ Features currently expected from the local pipeline:
 - OCR
 
 The app status labels this path as "Local 1 FPS" because guidance/cloud cadence is 1 FPS. The RTSP sampling status separately shows the `VideoFrameCache` sampled FPS.
+
+Spoken local-alert stabilization:
+
+- Model thresholds still come from `app/src/main/assets/models/manifest.json`.
+- Android uses higher user-facing speech thresholds before turning local detections into spoken safety guidance.
+- Current spoken thresholds: fire/smoke 0.80, wet/dry 0.70, pothole 0.70, electric pole 0.70, pedestrian 0.35.
+- Round-robin feature detections are cached for at most 2500 ms.
+- NIGHT clears cached detections.
+- INDOOR scene results clear cached pothole and electric-pole detections so old outdoor-only hazards are not spoken in a room.
 
 ## Cloud Upload Format
 

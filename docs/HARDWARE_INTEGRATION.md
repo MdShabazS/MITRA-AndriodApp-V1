@@ -34,12 +34,15 @@ Current assumptions:
 - Stream path: `/stream`
 - First app transport attempt: RTSP over TCP
 - Fallback transport: LibVLC automatic/UDP mode
+- Current Android LibVLC cache target: 60 ms for network/live/RTSP cache
+- Long-run mitigation: Android refreshes the live RTSP player after 5 minutes to clear possible decoder/RTSP backlog
 - App decoded sample format: `ARGB_8888` bitmap copied from the displayed `SurfaceView`
 - App sample cadence for the decoded frame cache: about 2.2 FPS by default
 - Cloud upload format: JPEG, quality 70, MessagePack WebSocket payload
 - Cloud upload cadence: fixed 1 FPS
 - App may sample frames at a low cadence for local AI inference while the preview continues normally.
 - If the stream is unavailable, the app should fail gracefully and use the phone camera fallback where possible.
+- App-reported latest-frame age is not true camera latency; hardware should provide a timestamp overlay or embedded source timestamp for exact latency testing.
 
 For the full hardware stream contract, Android decode path, cloud payload shape, and QA checklist, see `docs/HARDWARE_STREAM_CONTRACT_AND_QA.md`.
 
@@ -75,6 +78,14 @@ app/src/main/assets/models/manifest.json
 ```
 
 If the hardware changes camera orientation, resolution, compression, exposure behavior, timestamping, or frame cadence, document the expected impact here because it can affect AI detection quality.
+
+Current user-facing local alert behavior:
+
+- Android filters local detections with higher spoken-alert thresholds before TTS.
+- Current spoken thresholds: fire/smoke 0.80, wet/dry 0.70, pothole 0.70, electric pole 0.70, pedestrian 0.35.
+- Round-robin detector results are cached for at most 2500 ms.
+- NIGHT clears cached detections.
+- INDOOR clears cached pothole and electric-pole detections.
 
 ## Hardware Engineer Checklist
 

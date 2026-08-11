@@ -231,6 +231,50 @@ class AndroidNavigationModuleTest {
         assertTrue(!decision.finalText.contains("right", ignoreCase = true))
     }
 
+    @Test
+    fun evaluate_weakLocalWetWithoutDepth_doesNotSpeakHazard() {
+        val decision = AndroidNavigationModule.evaluate(
+            frameId = "frame-weak-wet",
+            seq = 19,
+            localResult = result(
+                detections = mapOf(
+                    Feature.WET_DRY to listOf(
+                        Detection("wet", 0.45f, floatArrayOf(0.35f, 0.55f, 0.65f, 0.95f))
+                    )
+                )
+            ),
+            cloudData = emptyMap()
+        )!!
+
+        assertEquals("WALK", decision.finalAction)
+        assertTrue(!decision.finalText.contains("Wet", ignoreCase = true))
+    }
+
+    @Test
+    fun evaluate_centerPersonWinsOverWeakLocalHazards() {
+        val decision = AndroidNavigationModule.evaluate(
+            frameId = "frame-person-vs-weak-hazards",
+            seq = 20,
+            localResult = result(
+                detections = mapOf(
+                    Feature.PEDESTRIAN to listOf(
+                        Detection("person", 0.52f, floatArrayOf(0.35f, 0.15f, 0.65f, 0.95f))
+                    ),
+                    Feature.WET_DRY to listOf(
+                        Detection("wet", 0.44f, floatArrayOf(0.35f, 0.55f, 0.65f, 0.95f))
+                    ),
+                    Feature.POTHOLE to listOf(
+                        Detection("pothole", 0.42f, floatArrayOf(0.35f, 0.55f, 0.65f, 0.95f))
+                    )
+                )
+            ),
+            cloudData = emptyMap()
+        )!!
+
+        assertEquals("CAUTION", decision.finalAction)
+        assertTrue(decision.finalText.contains("person", ignoreCase = true))
+    }
+
     private fun result(
         dayNight: DayNight = DayNight.DAY,
         sceneType: SceneType = SceneType.OUTDOOR,

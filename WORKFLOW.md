@@ -36,10 +36,15 @@ Inside `VideoActivity`/`CameraActivity`, `EngineBridge` feeds frames (~1 fps) to
 frame → DayNightGate
          ├─ night → skip model features (reason = NIGHT)
          └─ day  → SceneClassifier (indoor/outdoor)
-                    ├─ FireSmoke, WetDry, OCR   (always)
-                    └─ if OUTDOOR: Pothole, ElectricPole, Pedestrian
+                    ├─ FireSmoke, WetDry, Pedestrian, OCR
+                    └─ if OUTDOOR: Pothole, ElectricPole
 → HazardFrameResult (detections, latencies) → spoken / logged (HAZARD_* tags)
 ```
+
+To reduce false spoken hazards during long RTSP sessions, reused round-robin detections expire after
+about 2500 ms. NIGHT clears cached detections, and INDOOR clears cached pothole/electric-pole results.
+Spoken TTS uses stricter local alert thresholds than the model manifest: fire/smoke 0.80, wet/dry
+0.70, pothole 0.70, electric pole 0.70, pedestrian 0.35.
 
 ## 4. Voice commands (anytime, via BackgroundService)
 - **Foreground (home screen):** speak commands directly.

@@ -33,7 +33,12 @@ internal class Pipeline(
     // reuse the last result for the others. process() runs one frame at a time (maxInFlight = 1), so
     // this counter needs no synchronization.
     private var rrCounter = 0
-    private val lastDetections = ConcurrentHashMap<Feature, List<Detection>>()
+    private data class CachedDetections(
+        val detections: List<Detection>,
+        val frameTsMs: Long
+    )
+
+    private val lastDetections = ConcurrentHashMap<Feature, CachedDetections>()
 
     // Scene changes slowly, so re-run it only every Nth frame and reuse the last classification in
     // between. This trims scene inference off most frames, further reducing dropped frames.
@@ -101,6 +106,7 @@ internal class Pipeline(
         latencies[Feature.DAY_NIGHT] = SystemClock.elapsedRealtime() - dnStart
 
         if (dn == DayNight.NIGHT) {
+            lastDetections.clear()
             for (f in NIGHT_SKIP_FEATURES) skipped[f] = SkipReason.NIGHT
             observer.onTelemetry(TelemetryEvent.FrameSkippedNight(frame.frameId))
             return@coroutineScope HazardFrameResult(
@@ -119,9 +125,9 @@ internal class Pipeline(
             lastScene = scene
         } else {
             scene = lastScene
-            lastDetections[Feature.SCENE]?.let {
+            freshCachedDetections(Feature.SCENE, frame)?.let {
                 executed.add(Feature.SCENE)
-                detections[Feature.SCENE] = it
+                detections[Feature.SCENE] = it.detections
                 latencies[Feature.SCENE] = 0
             }
         }
@@ -141,6 +147,8 @@ internal class Pipeline(
         } else {
             skipped[Feature.POTHOLE] = SkipReason.SCENE_INDOOR
             skipped[Feature.ELECTRIC_POLE] = SkipReason.SCENE_INDOOR
+            lastDetections.remove(Feature.POTHOLE)
+            lastDetections.remove(Feature.ELECTRIC_POLE)
         }
 
         val runNow = rotation[rrCounter % rotation.size]
@@ -150,11 +158,12 @@ internal class Pipeline(
                 val timeout = if (f == Feature.OCR) config.ocrTimeoutMs else config.cpuTimeoutMs
                 runFeature(f, runnerFor(f), frame, timeout, executed, skipped, detections, latencies)
             } else {
-                // Not scheduled this frame — reuse the last known result if we have one.
-                val cached = lastDetections[f]
+                // Not scheduled this frame — reuse only a recent result. Old hazards caused stale
+                // spoken warnings during long hardware runs when the RTSP feed had accumulated lag.
+                val cached = freshCachedDetections(f, frame)
                 if (cached != null) {
                     executed.add(f)
-                    detections[f] = cached
+                    detections[f] = cached.detections
                     latencies[f] = 0
                 }
                 // else: no result yet; leave it absent until its first turn.
@@ -203,7 +212,7 @@ internal class Pipeline(
         latencies[Feature.SCENE] = SystemClock.elapsedRealtime() - start
         executed.add(Feature.SCENE)
         detections[Feature.SCENE] = result
-        lastDetections[Feature.SCENE] = result
+        lastDetections[Feature.SCENE] = CachedDetections(result, frame.tsMs)
         Telemetry.i("SCENE frame=${frame.frameId} top3=${result.take(3).joinToString { "${it.label}:${"%.3f".format(it.score)}" }}")
         val top = result.firstOrNull()?.label?.lowercase() ?: return SceneType.UNKNOWN
         return when {
@@ -236,7 +245,7 @@ internal class Pipeline(
             val out = withTimeout(timeoutMs) { runner.run(frame.bitmap) }
             executed.add(feature)
             detections[feature] = out
-            lastDetections[feature] = out
+            lastDetections[feature] = CachedDetections(out, frame.tsMs)
         } catch (_: TimeoutCancellationException) {
             skipped[feature] = SkipReason.FEATURE_TIMEOUT
             observer.onTelemetry(TelemetryEvent.FeatureTimeout(feature, frame.frameId))
@@ -253,7 +262,17 @@ internal class Pipeline(
             .forEach { it.close() }
     }
 
+    private fun freshCachedDetections(feature: Feature, frame: Frame): CachedDetections? {
+        val cached = lastDetections[feature] ?: return null
+        val ageMs = frame.tsMs - cached.frameTsMs
+        if (ageMs in 0..CACHED_DETECTION_TTL_MS) return cached
+        lastDetections.remove(feature, cached)
+        return null
+    }
+
     companion object {
+        private const val CACHED_DETECTION_TTL_MS = 2_500L
+
         private val NIGHT_SKIP_FEATURES = listOf(
             Feature.SCENE, Feature.FIRE_SMOKE, Feature.WET_DRY,
             Feature.OCR, Feature.PEDESTRIAN, Feature.POTHOLE, Feature.ELECTRIC_POLE

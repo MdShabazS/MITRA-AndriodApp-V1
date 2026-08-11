@@ -42,6 +42,11 @@ data class NavigationDecision(
 object AndroidNavigationModule {
 
     private val PERSON_LABELS = setOf("person", "pedestrian", "people")
+    private const val LOCAL_FIRE_SMOKE_SPEAK_CONFIDENCE = 0.80f
+    private const val LOCAL_WET_DRY_SPEAK_CONFIDENCE = 0.70f
+    private const val LOCAL_POTHOLE_SPEAK_CONFIDENCE = 0.70f
+    private const val LOCAL_ELECTRIC_POLE_SPEAK_CONFIDENCE = 0.70f
+    private const val LOCAL_PEDESTRIAN_SPEAK_CONFIDENCE = 0.35f
 
     fun evaluate(
         frameId: String?,
@@ -338,7 +343,9 @@ object AndroidNavigationModule {
         if (localResult == null) return emptyList()
         val hazardFeatures = listOf(Feature.FIRE_SMOKE, Feature.WET_DRY, Feature.POTHOLE, Feature.ELECTRIC_POLE)
         return hazardFeatures.flatMap { feature ->
-            localResult.detectionsByFeature[feature].orEmpty().map { detection ->
+            localResult.detectionsByFeature[feature].orEmpty().filter { detection ->
+                detection.score >= localHazardSpeakThreshold(feature)
+            }.map { detection ->
                 NavHazard(
                     type = detection.label.ifBlank { feature.name.lowercase() },
                     confidence = detection.score.toDouble(),
@@ -352,7 +359,9 @@ object AndroidNavigationModule {
 
     private fun extractLocalPedestrians(localResult: HazardFrameResult?): List<NavObject> {
         if (localResult == null) return emptyList()
-        return localResult.detectionsByFeature[Feature.PEDESTRIAN].orEmpty().map { detection ->
+        return localResult.detectionsByFeature[Feature.PEDESTRIAN].orEmpty().filter { detection ->
+            detection.score >= LOCAL_PEDESTRIAN_SPEAK_CONFIDENCE
+        }.map { detection ->
             NavObject(
                 label = detection.label.ifBlank { "person" },
                 confidence = detection.score.toDouble(),
@@ -360,6 +369,14 @@ object AndroidNavigationModule {
                 distanceM = null
             )
         }
+    }
+
+    private fun localHazardSpeakThreshold(feature: Feature): Float = when (feature) {
+        Feature.FIRE_SMOKE -> LOCAL_FIRE_SMOKE_SPEAK_CONFIDENCE
+        Feature.WET_DRY -> LOCAL_WET_DRY_SPEAK_CONFIDENCE
+        Feature.POTHOLE -> LOCAL_POTHOLE_SPEAK_CONFIDENCE
+        Feature.ELECTRIC_POLE -> LOCAL_ELECTRIC_POLE_SPEAK_CONFIDENCE
+        else -> 1.0f
     }
 
     private fun Detection.zone(): String {

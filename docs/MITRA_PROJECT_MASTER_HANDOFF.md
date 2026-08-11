@@ -146,10 +146,12 @@ Current stream behavior:
 - First transport attempt: last successful transport saved in app memory.
 - If no previous transport is saved, first attempt is RTSP over TCP.
 - Fallback alternates to LibVLC automatic/UDP behavior.
+- LibVLC network/live/RTSP cache target: 60 ms.
 - TCP first-frame timeout: about 3200 ms.
 - UDP/automatic first-frame timeout: about 2800 ms.
 - If LibVLC reports video output before PixelCopy captures a frame, PixelCopy receives an additional grace window.
 - Live stall timeout: about 4000 ms.
+- Long-run latency mitigation: Android refreshes the live RTSP player after 5 minutes to clear possible decoder/RTSP backlog.
 - Reconnect delay: about 450 ms.
 - Frame capture target: 640 x 480 ARGB_8888 before JPEG/cloud packaging.
 - Local frame sample interval: about 450 ms, around 2.2 FPS capture opportunity.
@@ -210,6 +212,10 @@ Local model and inference notes:
 - Other hazard features use bundled local TFLite models.
 - Model metadata is controlled by the assets model manifest.
 - Missing or disabled model specs should disable features instead of crashing the app.
+- Reused round-robin detector results expire after about 2500 ms.
+- NIGHT clears cached detections.
+- INDOOR clears cached pothole and electric-pole detections.
+- Android spoken guidance uses stricter thresholds than raw model logging: fire/smoke 0.80, wet/dry 0.70, pothole 0.70, electric pole 0.70, pedestrian 0.35.
 
 ### 6.6 Cloud Streaming Flow
 
@@ -742,4 +748,3 @@ A future task is not complete until:
 - Known risks are clearly called out.
 - Personal repo is pushed.
 - Organization repo remains untouched unless the user explicitly asks for upstream update.
-

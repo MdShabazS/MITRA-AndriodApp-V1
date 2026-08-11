@@ -50,8 +50,10 @@ class RtspFrameSource(
         private const val DEFAULT_WIDTH = 640
         private const val DEFAULT_HEIGHT = 480
         private const val BASE_PUBLISH_INTERVAL_MS = 450L
+        private const val VLC_CACHE_MS = 60
         private const val FIRST_CAPTURE_DELAY_MS = 250L
         private const val LIVE_STALL_MS = 4_000L
+        private const val LIVE_SESSION_REFRESH_MS = 5 * 60 * 1_000L
         private const val FIRST_FRAME_STALL_TCP_MS = 3_200L
         private const val FIRST_FRAME_STALL_UDP_MS = 2_800L
         private const val FIRST_FRAME_AFTER_VOUT_GRACE_MS = 4_000L
@@ -63,7 +65,7 @@ class RtspFrameSource(
 
         const val PREF_DUMP_FRAMES = "offload.debug.dumpFrames"
         const val PREF_LAST_GOOD_TRANSPORT = "rtsp.last_good_transport"
-        const val BUILD_TAG = "rtsp-libvlc-surface-pixelcopy"
+        const val BUILD_TAG = "rtsp-libvlc-low-latency-refresh"
     }
 
     private val mainHandler = Handler(context.mainLooper)
@@ -84,6 +86,7 @@ class RtspFrameSource(
     @Volatile private var capturesOk = 0L
     @Volatile private var lastFrameMs = 0L
     @Volatile private var lastVideoOutputMs = 0L
+    @Volatile private var playerStartedMs = 0L
     @Volatile private var captureInFlight = false
     @Volatile private var transportMode = loadLastGoodTransport()
 
@@ -176,6 +179,7 @@ class RtspFrameSource(
             return
         }
         releasePlayer()
+        playerStartedMs = SystemClock.elapsedRealtime()
         val lib = LibVLC(context, vlcOptions())
         val player = MediaPlayer(lib)
         libVlc = lib
@@ -243,8 +247,9 @@ class RtspFrameSource(
     private fun vlcOptions(): ArrayList<String> {
         return arrayListOf(
             "--no-audio",
-            "--network-caching=150",
-            "--live-caching=150",
+            "--network-caching=$VLC_CACHE_MS",
+            "--live-caching=$VLC_CACHE_MS",
+            "--rtsp-caching=$VLC_CACHE_MS",
             "--clock-jitter=0",
             "--clock-synchro=0",
             "--drop-late-frames",
@@ -253,8 +258,9 @@ class RtspFrameSource(
     }
 
     private fun addMediaOptions(media: Media) {
-        media.addOption(":network-caching=150")
-        media.addOption(":live-caching=150")
+        media.addOption(":network-caching=$VLC_CACHE_MS")
+        media.addOption(":live-caching=$VLC_CACHE_MS")
+        media.addOption(":rtsp-caching=$VLC_CACHE_MS")
         media.addOption(":clock-jitter=0")
         media.addOption(":clock-synchro=0")
         media.addOption(":drop-late-frames")
@@ -438,6 +444,14 @@ class RtspFrameSource(
             if (age > allowedStallMs && !reconnectScheduled) {
                 Log.w(TAG, "watchdog: no captured frame for ${age}ms; reconnecting")
                 scheduleReconnect("stall")
+            } else if (
+                capturesOk > 0L &&
+                playerStartedMs > 0L &&
+                SystemClock.elapsedRealtime() - playerStartedMs > LIVE_SESSION_REFRESH_MS &&
+                !reconnectScheduled
+            ) {
+                Log.w(TAG, "watchdog: refreshing live RTSP session to clear possible decoder/RTSP backlog")
+                scheduleReconnect("live-refresh")
             }
             mainHandler.postDelayed(this, WATCHDOG_INTERVAL_MS)
         }

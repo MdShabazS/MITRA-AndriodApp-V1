@@ -4,6 +4,64 @@ This file records completed project work in a format that app, AI, and hardware 
 
 ## 2026-08-11
 
+### RTSP Latency Mitigation And Local Alert Stabilization
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- Added app-side mitigations for the 8-second RTSP delay observed during the local hardware run.
+- Lowered LibVLC network/live/RTSP caching from 150 ms to 60 ms.
+- Added a 5-minute live RTSP session refresh to clear possible decoder/RTSP backlog during long runs.
+- Added a 2500 ms TTL for reused round-robin detector results so stale pothole/wet/person detections are not treated as current forever.
+- Cleared cached detections on NIGHT, and cleared cached pothole/electric-pole detections when the scene is INDOOR.
+- Added stricter spoken-alert thresholds for local TTS: fire/smoke 0.80, wet/dry 0.70, pothole 0.70, electric pole 0.70, pedestrian 0.35.
+- Added tests for weak wet suppression and person priority over weak local hazards.
+
+Files changed:
+
+- `app/src/main/java/com/unique/visionmate/RtspFrameSource.kt`
+- `app/src/main/java/com/unique/visionmate/AndroidNavigationModule.kt`
+- `app/src/test/java/com/unique/visionmate/AndroidNavigationModuleTest.kt`
+- `engine/src/main/java/com/unique/visionmate/engine/Pipeline.kt`
+- `README.md`
+- `WORKFLOW.md`
+- `docs/HARDWARE_INTEGRATION.md`
+- `docs/HARDWARE_STREAM_CONTRACT_AND_QA.md`
+- `docs/WORK_LOG.md`
+
+App impact:
+
+- Hardware RTSP should accumulate less buffer during longer runs.
+- If the RTSP player still carries delay, the 5-minute refresh should recover without requiring a manual app restart.
+- Weak local wet/pothole/fire/electric detections are less likely to produce spoken warnings.
+- Old cached detector results are expired before they can keep driving TTS.
+
+Hardware impact:
+
+- No SSID, IP, port, path, codec, or payload contract changed.
+- Hardware still needs a timestamp overlay or embedded source timestamp for exact camera-to-phone latency proof.
+
+AI/model impact:
+
+- Model files and model manifest thresholds did not change.
+- Only Android's user-facing spoken-alert filter changed.
+- Local inference result logs may still contain lower-confidence detections; TTS now uses stricter thresholds.
+
+Validation:
+
+- `:engine:testDebugUnitTest` passed.
+- `:app:testDebugUnitTest` passed.
+- `:app:assembleDebug` passed.
+- Rebuilt debug APK installed successfully on OPPO device `92edef11`.
+
+Follow-ups:
+
+- Repeat the same 10-minute MITRA hardware stream latency test.
+- Retest static indoor-room false hazard speech.
+- Retest centered-person detection versus weak wet/pothole hazards.
+- Keep cloud testing pending until the cloud pass starts.
+
 ### Local QA Follow-up: Latency And Spoken Alert Accuracy
 
 Owner: MdShabazS / Codex
