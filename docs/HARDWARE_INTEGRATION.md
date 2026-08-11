@@ -46,7 +46,9 @@ Current assumptions:
 
 For the full hardware stream contract, Android decode path, cloud payload shape, and QA checklist, see `docs/HARDWARE_STREAM_CONTRACT_AND_QA.md`.
 
-If Rahil decides the current firmware/RTSP stack must be reset or rebuilt, follow `docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md` before changing the hardware contract.
+Current 2026-08-11 decision: the later 15-minute Android retest did not reproduce the earlier 8-second delay, so Rahil should not reset or recode the hardware from scratch first. Rahil should first complete `docs/HARDWARE_AS_BUILT_CAPTURE_TEMPLATE.md`, back up/upload the current hardware code/config, add timestamp/frame-counter proof if missing, and tune only if new evidence points to hardware.
+
+If Rahil later decides the current firmware/RTSP stack must be reset or rebuilt, follow `docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md` before changing the hardware contract.
 
 ## AI And Frame Pipeline
 
@@ -97,6 +99,8 @@ Before changing firmware or hardware stream behavior, check:
 
 - `README.md` for the current app overview
 - `WORKFLOW.md` for the full app flow
+- `docs/RAHIL_CODEX_START_GUIDE.md` for Rahil's Codex startup prompt
+- `docs/HARDWARE_AS_BUILT_CAPTURE_TEMPLATE.md` for the required hardware documentation packet
 - `docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md` before any hardware reset or firmware rebuild
 - `STREAMING_METADATA_SCHEMA.md` for streaming metadata expectations
 - `app/src/main/AndroidManifest.xml` for Android permissions and services
@@ -107,6 +111,7 @@ Before changing firmware or hardware stream behavior, check:
 After changing hardware behavior, update:
 
 - This file
+- `docs/HARDWARE_AS_BUILT_CAPTURE_TEMPLATE.md` completed copy under `hardware/as_built/`
 - `WORKFLOW.md`
 - `docs/WORK_LOG.md`
 - Any app code or tests affected by the new hardware behavior

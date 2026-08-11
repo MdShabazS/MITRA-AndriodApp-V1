@@ -19,19 +19,20 @@ This branch contains the tested OPPO-working backup version from `BACKUPS/oppo_w
 - Local TFLite models run hazard features; navigation guidance is integrated in the Android app flow.
 - TTS speaks guidance with throttling, cached-detection expiry, and fresh-frame confirmation for local hazards to reduce repeated or stale alerts.
 
-## Why Rahil's Hardware Stream Work Matters
+## Rahil Hardware Stream Work
 
-The Android app can reduce buffering and ignore stale AI results, but it cannot fully fix a hardware stream that sends delayed, corrupted, or incorrectly timestamped frames. Rahil's low-latency firmware/RTSP work is expected to solve the root stream problems:
+Latest decision after the 2026-08-11 15-minute Android retest: do not reset or recode the hardware from scratch first. The earlier 8-second app delay did not reproduce in that later retest, and an Android RTSP reconnect-loop bug was found and fixed after the test.
 
-- Stop live-feed delay from growing over time, such as the observed 2-3 second delay becoming about 8 seconds.
-- Reduce decoder/render stutter on Android by sending correctly timed, low-latency frames.
-- Remove repeated blocky/color stream corruption.
-- Prevent old buffered camera frames from being treated as current AI input.
-- Improve local hazard accuracy for person, wet, pothole, fire/smoke, and indoor/outdoor scene decisions.
-- Make reconnect reliable without requiring a hardware reboot.
+Rahil's current priority is to document and preserve the working hardware implementation, then tune only what new evidence proves is needed:
+
+- Fill `docs/HARDWARE_AS_BUILT_CAPTURE_TEMPLATE.md` with board, camera, encoder, RTSP server, stream format, and startup details.
+- Back up and upload the current hardware source code, startup scripts, configs, and dependency/version list.
 - Add timestamp/frame-counter proof so the team can measure real camera-to-phone latency.
+- Confirm codec/profile/resolution/FPS/bitrate/GOP/B-frame/SPS/PPS and RTSP transport behavior.
+- Verify Mac and Android 15-minute stream tests after the Android reconnect-loop fix is installed.
+- Tune hardware only if delay growth, corruption, reconnect failure, or timestamp problems are reproduced.
 
-Product target: the hardware must provide a live navigation camera feed, not only an RTSP stream that opens. Rahil should follow `docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md` for the exact WiFi/RTSP contract, encoder settings, timestamp overlay, 10-minute tests, definition of done, and fail conditions.
+Product target: the hardware must provide a documented, reproducible, live navigation camera feed, not only an RTSP stream that opens. Rahil should start with `docs/RAHIL_CODEX_START_GUIDE.md` and use `docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md` only if targeted tuning cannot meet the product gates.
 
 ## Main Modules
 
@@ -47,7 +48,8 @@ This project is maintained by a team. Every meaningful change must update Markdo
 - `docs/DOCUMENTATION_STANDARDS.md`: required documentation process for future work.
 - `docs/WORK_LOG.md`: chronological record of completed tasks.
 - `docs/HARDWARE_INTEGRATION.md`: hardware-facing WiFi, RTSP, camera, and AI pipeline expectations.
-- `docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md`: Rahil's firmware reset/rebuild contract if the current hardware stream stack cannot be tuned.
+- `docs/HARDWARE_AS_BUILT_CAPTURE_TEMPLATE.md`: template Rahil should fill with real hardware/code/stream details.
+- `docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md`: Rahil's firmware tuning and fallback reset/rebuild contract if the current hardware stream stack cannot meet product gates.
 - `docs/RAHIL_CODEX_START_GUIDE.md`: exact prompt and step-by-step Codex startup guide for Rahil.
 - `docs/ANDROID_DEVICE_COMPATIBILITY_PLAN.md`: release gate and test matrix for running MITRA across supported Android phones.
 - `WORKFLOW.md`: end-to-end app behavior.

@@ -4,6 +4,50 @@ This file records completed project work in a format that app, AI, and hardware 
 
 ## 2026-08-11
 
+### Rahil Hardware Handoff Updated After No-8-Second-Delay Retest
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- Updated Rahil's hardware handoff after the later 15-minute Android retest did not reproduce the earlier 8-second delay.
+- Changed the hardware guidance from reset/recode-first to document/back-up/current-build-first.
+- Added an as-built hardware capture template so Rahil can record board, camera, stream format, RTSP server, encoder settings, startup path, source code/config backup, and test evidence.
+- Added explicit instructions for Rahil to upload or link current hardware code/configuration after removing secrets.
+
+Files changed:
+
+- `README.md`
+- `docs/RAHIL_CODEX_START_GUIDE.md`
+- `docs/HARDWARE_AS_BUILT_CAPTURE_TEMPLATE.md`
+- `docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md`
+- `docs/HARDWARE_INTEGRATION.md`
+- `docs/WORK_LOG.md`
+
+App impact:
+
+- No runtime app behavior changed.
+
+Hardware impact:
+
+- Full hardware recoding is no longer the immediate action.
+- Rahil should preserve/document the current hardware implementation, add timestamp/frame-counter proof, confirm stream format/settings, and tune only if evidence requires it.
+
+AI/model impact:
+
+- Real hardware frame capture remains important for fire/smoke model validation and false-alert debugging.
+
+Validation:
+
+- Documentation-only update.
+- Verified Git diff/status before commit.
+
+Follow-ups:
+
+- Rahil to open Codex with the prompt in `docs/RAHIL_CODEX_START_GUIDE.md`.
+- Rahil to commit a completed as-built copy under `hardware/as_built/`.
+- App team to retest Android 15-minute stream after installing the reconnect-guard APK.
+
 ### 15-Minute Hardware Stream Retest And RTSP Reconnect Guard
 
 Owner: MdShabazS / Codex

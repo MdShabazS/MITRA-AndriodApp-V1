@@ -7,16 +7,36 @@ Android app owner: MdShabazS
 Purpose:
 
 - Provide one complete hardware-side implementation guide for MITRA.
-- Solve the observed stream delay, decoder/render stutter, visual corruption, and AI false-alert amplification at the source.
+- Define how to tune the observed stream delay, decoder/render stutter, visual corruption, and AI false-alert amplification when evidence points to hardware.
 - Define exactly what the Android app expects from the hardware.
 - Define when to tune the existing firmware and when to rebuild from scratch.
 - Define product-level pass/fail tests before hardware is accepted.
 
 This document is intended to be sent directly to Rahil. Follow it as the hardware contract unless the app team explicitly changes the Android contract in the repo.
 
+## 0. Current Decision After Latest Android Retest
+
+As of 2026-08-11, do not reset or recode the hardware from scratch as the next step.
+
+Latest evidence:
+
+- A 15-minute Android hardware-stream retest did not reproduce the earlier 8-second app delay.
+- Android displayed fresh decoded frames at the recorded checkpoints.
+- The app team found and fixed an Android RTSP repeated-refresh loop after that retest.
+
+Current hardware action:
+
+1. Preserve and document the current hardware implementation.
+2. Back up/upload current hardware source code, startup scripts, and configs.
+3. Add timestamp/frame-counter proof if missing.
+4. Confirm exact stream format and RTSP/encoder settings.
+5. Tune only if new evidence shows hardware-side latency growth, corruption, reconnect failure, or timestamp problems.
+
+Use `docs/HARDWARE_AS_BUILT_CAPTURE_TEMPLATE.md` before changing firmware.
+
 ## 1. Current Problem Summary
 
-During local hardware testing on 2026-08-11, the Android app successfully connected to MITRA hardware WiFi and opened the RTSP stream, but the stream was not product-ready.
+During earlier local hardware testing on 2026-08-11, the Android app successfully connected to MITRA hardware WiFi and opened the RTSP stream, but the stream was not product-ready.
 
 Observed issues:
 
@@ -32,6 +52,11 @@ Important distinction:
 - Android `latest frame age` means Android recently copied the displayed video surface.
 - It does not prove the camera frame is live.
 - True camera-to-phone latency must be measured using a hardware timestamp overlay, frame counter, or embedded source timestamp.
+
+Later 2026-08-11 update:
+
+- The 8-second delay did not reproduce in the later 15-minute Android retest.
+- Therefore the current plan is documentation, timestamp proof, and targeted tuning rather than full hardware recoding.
 
 ## 2. Product-Level Target
 
