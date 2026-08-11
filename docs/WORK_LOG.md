@@ -4,6 +4,46 @@ This file records completed project work in a format that app, AI, and hardware 
 
 ## 2026-08-11
 
+### Rahil Codex Start Guide
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- Added a dedicated guide for Rahil to start a new Codex session from the personal GitHub repo.
+- Included the exact prompt Rahil should paste: `I am Rahil, so let's start.`
+- Instructed future Codex to read the hardware product spec first, then guide Rahil step by step.
+- Listed the first questions Codex should ask Rahil before giving platform-specific firmware commands.
+- Added a short message MdShabazS can send to Rahil.
+
+Files changed:
+
+- `docs/RAHIL_CODEX_START_GUIDE.md`
+- `README.md`
+- `docs/WORK_LOG.md`
+
+App impact:
+
+- No runtime app behavior changed.
+
+Hardware impact:
+
+- Gives Rahil a clean onboarding path into the hardware stream work.
+- Helps prevent accidental Android contract changes while using Codex on another laptop.
+
+AI/model impact:
+
+- Future Codex sessions get a clear role, document order, and step-by-step workflow for hardware work.
+
+Validation:
+
+- Documentation-only change.
+
+Follow-ups:
+
+- Add Rahil as collaborator to the personal repository.
+- Ask Rahil to open Codex with the repo link and use the prompt from `docs/RAHIL_CODEX_START_GUIDE.md`.
+
 ### README Hardware Work Impact Summary
 
 Owner: MdShabazS / Codex

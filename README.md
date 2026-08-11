@@ -48,6 +48,7 @@ This project is maintained by a team. Every meaningful change must update Markdo
 - `docs/WORK_LOG.md`: chronological record of completed tasks.
 - `docs/HARDWARE_INTEGRATION.md`: hardware-facing WiFi, RTSP, camera, and AI pipeline expectations.
 - `docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md`: Rahil's firmware reset/rebuild contract if the current hardware stream stack cannot be tuned.
+- `docs/RAHIL_CODEX_START_GUIDE.md`: exact prompt and step-by-step Codex startup guide for Rahil.
 - `docs/ANDROID_DEVICE_COMPATIBILITY_PLAN.md`: release gate and test matrix for running MITRA across supported Android phones.
 - `WORKFLOW.md`: end-to-end app behavior.
 - `COMMANDS.md`: voice command behavior.
