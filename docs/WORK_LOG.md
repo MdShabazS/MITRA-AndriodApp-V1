@@ -4,6 +4,50 @@ This file records completed project work in a format that app, AI, and hardware 
 
 ## 2026-08-11
 
+### Local Device QA Evidence Pass
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- Ran a non-cloud local QA pass on the OPPO test phone connected over ADB.
+- Built, installed, and unit-tested the current debug APK.
+- Captured hardware WiFi, RTSP stream, local AI, foreground service, background service, and 10-minute stability evidence.
+- Saved raw logs, screenshots, focused excerpts, and a QA report under `docs/test-evidence/2026-08-11-local-device-qa/`.
+
+Files changed:
+
+- `docs/test-evidence/2026-08-11-local-device-qa/LOCAL_DEVICE_QA_REPORT.md`
+- `docs/WORK_LOG.md`
+
+App impact:
+
+- No runtime app behavior changed.
+
+Hardware impact:
+
+- Confirmed MITRA hardware WiFi and RTSP stream work on OPPO with 640 x 480 sampled frames at about 2.2 FPS.
+- Found visible stream corruption during the stability window that needs hardware/encoder/RTSP retest.
+
+AI/model impact:
+
+- Confirmed local hazard engine logs continued during hardware stream testing.
+- Confirmed day/night, scene, and local navigation/TTS decision logs were produced.
+
+Validation:
+
+- `:app:assembleDebug` passed.
+- `:engine:testDebugUnitTest` and `:app:testDebugUnitTest` passed.
+- APK install passed.
+- Hardware stream stayed alive through the 10-minute stability window.
+
+Follow-ups:
+
+- Cloud remains intentionally skipped and pending.
+- Repeat live voice command matrix with human speech near the phone.
+- Decide whether backgrounded hardware stream frame capture must be supported.
+- Retest visual stream corruption with hardware/encoder settings.
+
 ### Master Architecture And AI Handoff Document
 
 Owner: MdShabazS / Codex
