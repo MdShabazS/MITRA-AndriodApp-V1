@@ -19,6 +19,20 @@ This branch contains the tested OPPO-working backup version from `BACKUPS/oppo_w
 - Local TFLite models run hazard features; navigation guidance is integrated in the Android app flow.
 - TTS speaks guidance with throttling, cached-detection expiry, and fresh-frame confirmation for local hazards to reduce repeated or stale alerts.
 
+## Why Rahil's Hardware Stream Work Matters
+
+The Android app can reduce buffering and ignore stale AI results, but it cannot fully fix a hardware stream that sends delayed, corrupted, or incorrectly timestamped frames. Rahil's low-latency firmware/RTSP work is expected to solve the root stream problems:
+
+- Stop live-feed delay from growing over time, such as the observed 2-3 second delay becoming about 8 seconds.
+- Reduce decoder/render stutter on Android by sending correctly timed, low-latency frames.
+- Remove repeated blocky/color stream corruption.
+- Prevent old buffered camera frames from being treated as current AI input.
+- Improve local hazard accuracy for person, wet, pothole, fire/smoke, and indoor/outdoor scene decisions.
+- Make reconnect reliable without requiring a hardware reboot.
+- Add timestamp/frame-counter proof so the team can measure real camera-to-phone latency.
+
+Product target: the hardware must provide a live navigation camera feed, not only an RTSP stream that opens. Rahil should follow `docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md` for the exact WiFi/RTSP contract, encoder settings, timestamp overlay, 10-minute tests, definition of done, and fail conditions.
+
 ## Main Modules
 
 - `app`: Android UI, permissions, WiFi pairing, RTSP display, voice service, accessibility service, cloud streaming, and app integration.

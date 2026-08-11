@@ -4,6 +4,41 @@ This file records completed project work in a format that app, AI, and hardware 
 
 ## 2026-08-11
 
+### README Hardware Work Impact Summary
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- Added a README section explaining why Rahil's hardware stream work matters.
+- Listed the root problems expected to be solved by product-level hardware firmware/RTSP work: delay growth, decoder stutter, stream corruption, stale AI input, hazard accuracy, reconnect reliability, and timestamp proof.
+- Pointed Rahil from the README to the detailed hardware product spec.
+
+Files changed:
+
+- `README.md`
+- `docs/WORK_LOG.md`
+
+App impact:
+
+- No runtime app behavior changed.
+
+Hardware impact:
+
+- Makes the hardware work objective visible from the repository front page.
+
+AI/model impact:
+
+- Documents that better hardware frame freshness and quality should improve local AI guidance reliability.
+
+Validation:
+
+- Documentation-only change.
+
+Follow-ups:
+
+- Rahil should use `docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md` as the implementation contract.
+
 ### Product-Level Hardware Spec For Rahil
 
 Owner: MdShabazS / Codex
