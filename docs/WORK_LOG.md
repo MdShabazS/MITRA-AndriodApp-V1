@@ -4,6 +4,43 @@ This file records completed project work in a format that app, AI, and hardware 
 
 ## 2026-08-11
 
+### VLC Hardware Latency Comparison Note
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- Recorded operator-reported VLC comparison for the MITRA hardware stream.
+- VLC reportedly showed about 2 seconds delay initially and about 3 seconds delay after 13 minutes.
+- This suggests the full 8-second delay seen in the Android app is less likely to be hardware alone under the same class of test.
+- Hardware still needs latency reduction for product quality, but Android phone/player/decoder behavior is now a stronger suspect for the large delay growth observed in-app.
+
+Files changed:
+
+- `docs/test-evidence/2026-08-11-local-device-qa/LOCAL_DEVICE_QA_REPORT.md`
+- `docs/WORK_LOG.md`
+
+App impact:
+
+- No runtime app behavior changed.
+
+Hardware impact:
+
+- Hardware remains in the latency improvement path, but the current VLC comparison does not reproduce the 8-second delay.
+
+AI/model impact:
+
+- Better stream freshness is still required because stale frames affect AI guidance.
+
+Validation:
+
+- Documentation-only update based on operator-reported VLC timing.
+
+Follow-ups:
+
+- Repeat VLC/ffplay and Android tests with timestamp overlay/frame counter.
+- Reconnect phone and install the corrected Android build before the next app-side retest.
+
 ### Rahil Codex Start Guide
 
 Owner: MdShabazS / Codex

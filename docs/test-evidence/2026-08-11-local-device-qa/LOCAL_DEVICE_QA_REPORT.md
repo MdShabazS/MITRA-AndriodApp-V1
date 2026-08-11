@@ -87,6 +87,7 @@ Issues found:
 - At the 2-minute checkpoint, the visible video frame had blocky/color corruption even though the stream was still live and sampling.
 - Logs showed decoder status/warnings from `c2.qti.avc.decoder`, with changing input/render FPS.
 - Operator-observed latency drift: during the first 0-4 minutes the visual delay was about 2.5-2.9 seconds; after about 7 minutes the visual delay increased to about 8 seconds.
+- Operator-reported VLC comparison: the same hardware stream was previously checked in VLC and was about 2 seconds initially, then about 3 seconds after 13 minutes.
 - The app's "last frame" value only proves that Android copied a recently rendered surface frame. It does not prove the camera frame itself is live, because a decoder/RTSP queue can keep rendering delayed frames.
 
 Log evidence for latency/stutter:
@@ -106,6 +107,7 @@ Conclusion:
 
 - RTSP connectivity and sampling are working.
 - Stream freshness is not proven. The feed can stay connected while delayed frames accumulate.
+- The VLC comparison suggests the full 8-second Android delay is not explained by hardware alone under that VLC test. Hardware still has baseline latency and should be improved, but Android phone/player/decoder behavior is now a stronger suspect for the large delay growth seen in the app.
 - Stream visual quality and long-run latency must be fixed/retested with both Android player settings and hardware encoder/RTSP settings.
 
 ## Local AI / Hazard Engine
