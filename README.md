@@ -28,6 +28,7 @@ This branch contains the tested OPPO-working backup version from `BACKUPS/oppo_w
 
 This project is maintained by a team. Every meaningful change must update Markdown documentation so app, AI, and hardware engineers can understand the work without guessing.
 
+- `docs/MITRA_PROJECT_MASTER_HANDOFF.md`: start-here architecture, completed work, pending work, QA, and handoff guide for future teammates or AI chats.
 - `docs/DOCUMENTATION_STANDARDS.md`: required documentation process for future work.
 - `docs/WORK_LOG.md`: chronological record of completed tasks.
 - `docs/HARDWARE_INTEGRATION.md`: hardware-facing WiFi, RTSP, camera, and AI pipeline expectations.
