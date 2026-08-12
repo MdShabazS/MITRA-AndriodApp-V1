@@ -7,6 +7,7 @@ Purpose:
 - Capture the real current MITRA hardware implementation.
 - Give the Android, AI, and future Codex sessions a hardware source of truth.
 - Preserve enough code/configuration detail so another engineer can reproduce the stream.
+- Confirm the hardware stream remains compatible with Android now and future iOS.
 
 Fill this file after connecting to the hardware. Commit the completed copy to the repo as:
 
@@ -79,6 +80,22 @@ Do not include private passwords or secrets in this repo. If a secret exists, wr
 | Pixel format before encoder | TODO |
 | Timestamp source | TODO |
 | Timestamp overlay/frame counter | yes / no / TODO |
+| Android compatibility result | TODO |
+| Future iOS compatibility notes | TODO |
+
+MITRA product target unless MdShabazS approves a deviation:
+
+| Setting | Target |
+|---|---|
+| Codec baseline | H.264 |
+| First target resolution | 640 x 480 |
+| First target FPS | 15 FPS |
+| GOP/keyframe interval | 1 second |
+| B-frames | disabled |
+| SPS/PPS | present at stream start and repeated with keyframes when possible |
+| Bitrate | capped/stable |
+| Queues | bounded; drop old frames if the client falls behind |
+| H.265 | optional future experiment only, not the product baseline |
 
 ## 5. Stream Startup Path
 
@@ -198,6 +215,9 @@ Summary:
 | Reconnect works without reboot | TODO | TODO |
 | Exact stream format documented | TODO | TODO |
 | Hardware code/config backed up | TODO | TODO |
+| Android compatibility documented | TODO | TODO |
+| Future iOS compatibility documented | TODO | TODO |
+| H.264 product profile met or deviation justified | TODO | TODO |
 
 ## 9. Known Issues
 

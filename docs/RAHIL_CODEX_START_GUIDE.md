@@ -6,7 +6,7 @@ Purpose:
 
 - Tell Rahil exactly how to start a new Codex session using this repository.
 - Tell future Codex how to guide Rahil step by step.
-- Keep the hardware work aligned with the MITRA Android product contract.
+- Keep the hardware work aligned with the MITRA Android product contract and future iOS product contract.
 - Capture the current hardware implementation details and code so the team finally has a hardware source of truth.
 
 ## Current Decision After 2026-08-11 Retest
@@ -25,7 +25,9 @@ Rahil's immediate hardware task is now:
 2. Back up and upload the current hardware code/configuration into this repo or an approved linked artifact.
 3. Add timestamp/frame-counter proof if it is not already available.
 4. Confirm the exact stream format, encoder settings, FPS, bitrate, GOP, transport, and RTSP server behavior.
-5. Tune only the needed hardware settings if measured evidence shows latency, corruption, reconnect, or timestamp problems.
+5. Tune the hardware stream toward the MITRA product profile: H.264, 640 x 480 first, 15 FPS first, 1-second GOP/keyframe interval, no B-frames, repeated SPS/PPS when possible, capped/stable bitrate, and bounded queues that drop old frames.
+6. Keep the stream contract compatible with Android now and future iOS. Do not choose Android-only hardware behavior.
+7. Tune only the needed hardware settings if measured evidence shows latency, corruption, reconnect, timestamp, or cross-platform compatibility problems.
 
 Full firmware rebuild is a fallback only, not the first action.
 
@@ -55,9 +57,9 @@ docs/RAHIL_CODEX_START_GUIDE.md
 ```text
 i m rahil lets start
 
-I am the hardware engineer for MITRA. First read docs/RAHIL_CODEX_START_GUIDE.md, docs/HARDWARE_INTEGRATION.md, docs/HARDWARE_STREAM_CONTRACT_AND_QA.md, docs/HARDWARE_AS_BUILT_CAPTURE_TEMPLATE.md, and docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md.
+I am the hardware engineer for MITRA. First read docs/RAHIL_CODEX_START_GUIDE.md, docs/HARDWARE_INTEGRATION.md, docs/HARDWARE_STREAM_CONTRACT_AND_QA.md, docs/HARDWARE_AS_BUILT_CAPTURE_TEMPLATE.md, docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md, and docs/PRODUCT_STREAMING_ARCHITECTURE.md.
 
-Important: the latest Android retest did not reproduce the earlier 8-second delay, so do not tell me to reset or recode the hardware from scratch first. Guide me step by step to document the existing hardware, back up/upload the current hardware code and config, confirm the exact stream format/FPS/bitrate/GOP/RTSP settings, add timestamp or frame-counter proof, and tune only what evidence shows is needed. Do not change the Android contract unless MdShabazS approves it.
+Important: the latest Android retest did not reproduce the earlier 8-second delay, so do not tell me to reset or recode the hardware from scratch first. Guide me step by step to document the existing hardware, back up/upload the current hardware code and config, confirm the exact stream format/FPS/bitrate/GOP/RTSP settings, add timestamp or frame-counter proof, and tune only what evidence shows is needed. The hardware must support Android now and future iOS, so prefer product-safe H.264 settings unless MdShabazS approves a protocol change. Do not change the Android contract unless MdShabazS approves it.
 ```
 
 ## What Codex Should Do When Rahil Starts
@@ -70,14 +72,19 @@ Use this order:
 2. Read `docs/HARDWARE_INTEGRATION.md`.
 3. Read `docs/HARDWARE_STREAM_CONTRACT_AND_QA.md`.
 4. Read `docs/HARDWARE_AS_BUILT_CAPTURE_TEMPLATE.md`.
-5. Read `docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md` only as fallback guidance.
-6. Confirm the non-negotiable Android contract:
+5. Read `docs/PRODUCT_STREAMING_ARCHITECTURE.md`.
+6. Read `docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md` only as fallback guidance.
+7. Confirm the non-negotiable Android contract:
    - SSID: `MITRA_DEVICE`
    - hardware IP: `10.42.0.1`
    - RTSP port: `8554`
    - RTSP path: `/stream`
    - full URL: `rtsp://10.42.0.1:8554/stream`
-7. Ask Rahil for:
+8. Confirm the non-negotiable product requirement:
+   - hardware stream must remain compatible with Android and future iOS
+   - H.264 is the required codec baseline for now
+   - H.265 must not replace H.264 unless Android phone matrix, future iOS path, hardware thermal load, and app decoding are all approved and retested
+9. Ask Rahil for:
    - hardware board/model
    - OS/image version
    - camera module/model
@@ -87,14 +94,22 @@ Use this order:
    - whether GStreamer, FFmpeg, MediaMTX, live555, v4l2, or a vendor stack is used
    - current stream resolution/FPS/bitrate/GOP/B-frame settings
    - whether timestamp overlay or frame counter already exists
-8. Tell Rahil to back up current firmware/config before changing anything.
-9. Tell Rahil to create an as-built hardware documentation packet using `docs/HARDWARE_AS_BUILT_CAPTURE_TEMPLATE.md`.
-10. Tell Rahil to upload the current hardware source/configs or a documented artifact link.
-11. Add timestamp overlay/frame counter if missing.
-12. Run Mac `ffprobe` / `ffplay` tests.
-13. Run Android MITRA retest.
-14. Tune encoder and RTSP settings only if evidence requires it.
-15. Rebuild from scratch only if tuning cannot meet the product gates.
+10. Tell Rahil to back up current firmware/config before changing anything.
+11. Tell Rahil to create an as-built hardware documentation packet using `docs/HARDWARE_AS_BUILT_CAPTURE_TEMPLATE.md`.
+12. Tell Rahil to upload the current hardware source/configs or a documented artifact link.
+13. Add timestamp overlay/frame counter if missing.
+14. Tune toward the product H.264 profile only after backup:
+    - 640 x 480 first
+    - 15 FPS first
+    - 1-second GOP/keyframe interval
+    - no B-frames
+    - repeat SPS/PPS with keyframes if supported
+    - capped/stable bitrate
+    - bounded queues that drop old frames
+15. Run Mac `ffprobe` / `ffplay` tests.
+16. Run Android MITRA retest.
+17. Record future iOS compatibility notes.
+18. Rebuild from scratch only if tuning cannot meet the product gates.
 
 ## First Questions Codex Should Ask Rahil
 
@@ -106,11 +121,13 @@ Codex should ask these before giving platform-specific commands:
 3. Which camera module and camera driver are used?
 4. How is RTSP currently served: GStreamer, FFmpeg, MediaMTX, live555, custom code, or vendor tool?
 5. What are the current codec, resolution, FPS, bitrate, GOP/keyframe interval, and B-frame settings?
-6. Can you add a timestamp overlay or frame counter to each video frame?
-7. Can your laptop connect to MITRA_DEVICE WiFi and run ffprobe/ffplay?
-8. Where is the current hardware code stored?
-9. Can we copy the hardware source code, startup scripts, config files, and dependency/version list into this repo or a linked artifact?
-10. Are there any secrets, WiFi passwords, private keys, or tokens in the hardware code that must be removed before upload?
+6. Does the current stream use H.264, and can it be set to 640 x 480, 15 FPS, 1-second GOP, no B-frames, repeated SPS/PPS, and capped bitrate?
+7. Can you add a timestamp overlay or frame counter to each video frame?
+8. Can your laptop connect to MITRA_DEVICE WiFi and run ffprobe/ffplay?
+9. Where is the current hardware code stored?
+10. Can we copy the hardware source code, startup scripts, config files, and dependency/version list into this repo or a linked artifact?
+11. Are there any secrets, WiFi passwords, private keys, or tokens in the hardware code that must be removed before upload?
+12. Which parts of the hardware stream are Android-specific today, and what must be kept generic for future iOS?
 ```
 
 ## Product Goal Rahil Is Solving
@@ -125,6 +142,7 @@ Current priority after the 2026-08-11 retest:
 - Preserve the current working hardware code/config before future changes.
 - Add timestamp/frame-counter proof for true camera-to-phone latency.
 - Confirm the exact stream format: codec, profile, resolution, FPS, bitrate, GOP, B-frames, SPS/PPS, RTSP transport, and server.
+- Make the stream product-compatible for Android now and future iOS, starting from a conservative H.264 baseline.
 - Confirm reconnect behavior without hardware reboot.
 - Confirm whether decoder/render stutter is still reproducible after the Android reconnect-loop fix.
 - Help the app/AI team collect real hardware frames for fire/smoke model validation.
@@ -149,6 +167,7 @@ Do not change these unless MdShabazS/app team approves and Android is retested:
 - RTSP path `/stream`
 - RTSP URL `rtsp://10.42.0.1:8554/stream`
 - basic H.264 Android compatibility
+- Android + future iOS codec/protocol compatibility
 - physical camera orientation
 - authentication behavior
 
@@ -158,6 +177,7 @@ Rahil should only call hardware ready after:
 
 - current hardware source/config backup is uploaded or linked
 - as-built hardware details are documented in the repo
+- hardware stream is documented as Android-compatible and future-iOS-compatible
 - timestamp overlay/frame counter exists
 - Mac `ffprobe` confirms expected codec/resolution/FPS
 - Mac `ffplay` 15-minute test passes
@@ -166,6 +186,7 @@ Rahil should only call hardware ready after:
 - no repeated visual corruption appears
 - reconnect works without hardware reboot
 - encoder and RTSP settings are documented
+- H.264 product profile is documented or any deviation is explicitly justified
 - evidence is sent back to MdShabazS/app team
 
 ## Evidence Rahil Should Return
@@ -202,6 +223,9 @@ Minimum evidence:
 - bitrate
 - GOP/keyframe interval
 - B-frame setting
+- SPS/PPS behavior
+- Android compatibility note
+- future iOS compatibility note
 - timestamp overlay proof
 - current hardware code/config copy or artifact link
 - 15-minute Mac result

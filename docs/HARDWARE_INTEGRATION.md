@@ -48,7 +48,8 @@ Product direction:
 
 - Current RTSP/H.264 remains the Android v1 path until the hardware stream profile is fully captured.
 - Future Android + iOS streaming must be selected from a documented protocol decision. WebRTC/H.264 is the main product candidate to evaluate after Rahil backs up and documents the current firmware.
-- Before any hardware stream rewrite, Rahil must save a full hardware backup and create `docs/HARDWARE_DEVICE_PROFILE.md` with codec, FPS, bitrate, GOP/keyframe interval, SPS/PPS behavior, thermal notes, and 15-minute VLC/MITRA results.
+- Before any hardware stream rewrite, Rahil must save a full hardware backup and create `docs/HARDWARE_DEVICE_PROFILE.md` with codec, FPS, bitrate, GOP/keyframe interval, SPS/PPS behavior, Android compatibility, future iOS compatibility, thermal notes, and 15-minute VLC/MITRA results.
+- Hardware should support Android now and future iOS from the same product stream contract. H.264 is the baseline; H.265 is only a future experiment after compatibility and thermal proof.
 - The full product-level streaming plan is in `docs/PRODUCT_STREAMING_ARCHITECTURE.md`.
 
 For the full hardware stream contract, Android decode path, cloud payload shape, and QA checklist, see `docs/HARDWARE_STREAM_CONTRACT_AND_QA.md`.

@@ -9,6 +9,7 @@ Purpose:
 - Provide one complete hardware-side implementation guide for MITRA.
 - Define how to tune the observed stream delay, decoder/render stutter, visual corruption, and AI false-alert amplification when evidence points to hardware.
 - Define exactly what the Android app expects from the hardware.
+- Define the stream baseline that must also support future iOS.
 - Define when to tune the existing firmware and when to rebuild from scratch.
 - Define product-level pass/fail tests before hardware is accepted.
 
@@ -30,7 +31,9 @@ Current hardware action:
 2. Back up/upload current hardware source code, startup scripts, and configs.
 3. Add timestamp/frame-counter proof if missing.
 4. Confirm exact stream format and RTSP/encoder settings.
-5. Tune only if new evidence shows hardware-side latency growth, corruption, reconnect failure, or timestamp problems.
+5. Tune the current stream toward the MITRA product H.264 profile: 640 x 480 first, 15 FPS first, 1-second GOP/keyframe interval, no B-frames, repeated SPS/PPS when possible, capped/stable bitrate, and bounded queues that drop old frames.
+6. Confirm the hardware stream remains compatible with Android now and future iOS.
+7. Tune only if new evidence shows hardware-side latency growth, corruption, reconnect failure, timestamp problems, or cross-platform compatibility risk.
 
 Use `docs/HARDWARE_AS_BUILT_CAPTURE_TEMPLATE.md` before changing firmware.
 
@@ -70,6 +73,7 @@ Product behavior required:
 - Reconnects must work without hardware reboot.
 - The app must be able to trust the frame order and timestamps.
 - The hardware must preserve the Android WiFi and RTSP contract.
+- The hardware stream must be designed for Android now and future iOS, not only one Android phone.
 
 Product-level latency gate:
 
@@ -130,6 +134,7 @@ These values are mandatory unless the Android app is changed and retested in the
 | Audio | Android disables audio |
 | Minimum verified resolution | 640 x 480 |
 | Camera purpose | Live assistive navigation and AI inference |
+| Product compatibility | Android now, future iOS later |
 
 Do not change:
 
@@ -139,6 +144,7 @@ Do not change:
 - RTSP path
 - Authentication behavior
 - Codec family
+- Android + future iOS compatibility
 - Orientation
 - Resolution
 - FPS
@@ -160,6 +166,7 @@ Camera sensor
   -> RTP packetizer
   -> RTSP server at rtsp://10.42.0.1:8554/stream
   -> Android MITRA app over MITRA_DEVICE WiFi
+  -> future iOS MITRA app using the same product stream contract or an approved successor contract
 ```
 
 Design rules:
@@ -213,7 +220,7 @@ Recommended starting settings:
 | Setting | Target |
 |---|---|
 | Resolution | 640 x 480 |
-| FPS | 25 or 30 |
+| FPS | 15 first; raise only if stable |
 | Pixel format before encoder | NV12/NV21/YUV420 if supported |
 | Exposure | Auto allowed, but must be stable |
 | White balance | Auto allowed, but must be stable |
@@ -223,7 +230,7 @@ Do not upscale low-quality input to 640 x 480 just to satisfy resolution. If the
 
 ## 8. Encoder Requirements
 
-H.264 is preferred for Android compatibility.
+H.264 is the required product baseline for Android compatibility and future iOS planning. H.265 is not the default MITRA stream codec.
 
 Product-level encoder target:
 
@@ -232,8 +239,8 @@ Product-level encoder target:
 | Codec | H.264 |
 | Profile | Baseline or constrained baseline preferred |
 | Resolution | 640 x 480 |
-| FPS | 25 or 30 |
-| Bitrate | Start with 1.0-2.0 Mbps for 640 x 480 |
+| FPS | 15 first; raise only after 15-minute thermal and phone tests pass |
+| Bitrate | Start capped/stable, typically 0.8-1.5 Mbps for 640 x 480 at 15 FPS |
 | GOP/keyframe interval | 1 second |
 | B-frames | 0 / disabled |
 | Encoder mode | Low latency / zerolatency |
@@ -248,6 +255,7 @@ Critical:
 - Use a short GOP. Long GOP makes recovery slow and can worsen delay/corruption after packet loss.
 - Do not let encoder output queue grow without bound.
 - If the phone or RTSP client falls behind, drop old frames.
+- Do not switch the product baseline to H.265 unless MdShabazS approves it after Android phone matrix testing, future iOS path validation, and hardware thermal testing.
 
 ## 9. RTSP Server Requirements
 

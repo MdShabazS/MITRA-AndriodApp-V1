@@ -4,6 +4,47 @@ This file records completed project work in a format that app, AI, and hardware 
 
 ## 2026-08-12
 
+### Rahil Android And iOS Hardware Stream Requirements
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- Updated Rahil-facing hardware docs so he can perform the tasks directly from the repo.
+- Made Android now + future iOS compatibility a hardware requirement.
+- Locked H.264 as the product baseline and H.265 as a future experiment only.
+- Added the exact tuning target: 640 x 480 first, 15 FPS first, 1-second GOP, no B-frames, repeated SPS/PPS when possible, capped/stable bitrate, bounded queues, and timestamp/frame-counter proof.
+
+Files changed:
+
+- `README.md`
+- `docs/RAHIL_CODEX_START_GUIDE.md`
+- `docs/HARDWARE_INTEGRATION.md`
+- `docs/HARDWARE_AS_BUILT_CAPTURE_TEMPLATE.md`
+- `docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md`
+- `docs/PRODUCT_STREAMING_ARCHITECTURE.md`
+- `docs/WORK_LOG.md`
+
+App impact:
+
+- No APK behavior changed.
+
+Hardware impact:
+
+- Rahil now has a direct task list in the repo for backup, documentation, stream tuning, Android compatibility, and future iOS compatibility.
+
+AI/model impact:
+
+- Stable, timestamped stream remains required so AI does not analyze stale or corrupted frames.
+
+Validation:
+
+- Markdown-only change; no Android build required.
+
+Follow-ups:
+
+- Rahil should complete the hardware as-built capture and upload/link the sanitized hardware backup before firmware tuning.
+
 ### Product Streaming Architecture And Status Panels
 
 Owner: MdShabazS / Codex

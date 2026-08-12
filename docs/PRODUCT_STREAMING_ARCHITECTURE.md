@@ -74,6 +74,7 @@ Required v1 hardware settings to document and stabilize:
 - No B-frames for the low-latency profile.
 - Stable bitrate or capped VBR so WiFi jitter does not create large decode queues.
 - Monotonic frame index and capture timestamp in a side metadata channel or overlay test mode.
+- Hardware stream must remain compatible with Android now and future iOS; avoid Android-only encoder/protocol behavior.
 
 ### Recommended Product Candidate
 
@@ -173,7 +174,8 @@ Next action:
 
 - Keep the current RTSP/H.264 Android path.
 - Add product-grade stream/cloud status panels in Android.
-- Ask Rahil to document the current hardware stream profile and backup the hardware code.
+- Rahil should document the current hardware stream profile and backup the hardware code by following `docs/RAHIL_CODEX_START_GUIDE.md`.
+- Rahil should tune only toward the product H.264 profile first: 640 x 480, 15 FPS, 1-second GOP, no B-frames, repeated SPS/PPS when possible, capped/stable bitrate, bounded queues, timestamp/frame counter proof, and Android+iOS compatibility notes.
 - After that, compare stabilized RTSP/H.264 against a WebRTC/H.264 prototype before committing future Android+iOS hardware protocol.
 
 ## References

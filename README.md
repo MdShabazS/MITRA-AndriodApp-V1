@@ -29,7 +29,8 @@ Rahil's current priority is to document and preserve the working hardware implem
 - Fill `docs/HARDWARE_AS_BUILT_CAPTURE_TEMPLATE.md` with board, camera, encoder, RTSP server, stream format, and startup details.
 - Back up and upload the current hardware source code, startup scripts, configs, and dependency/version list.
 - Add timestamp/frame-counter proof so the team can measure real camera-to-phone latency.
-- Confirm codec/profile/resolution/FPS/bitrate/GOP/B-frame/SPS/PPS and RTSP transport behavior.
+- Confirm codec/profile/resolution/FPS/bitrate/GOP/B-frame/SPS/PPS, RTSP transport behavior, Android compatibility, and future iOS compatibility.
+- Tune toward the MITRA product H.264 profile first: 640 x 480, 15 FPS, 1-second GOP, no B-frames, repeated SPS/PPS when possible, capped/stable bitrate, and bounded queues that drop old frames.
 - Verify Mac and Android 15-minute stream tests after the Android reconnect-loop fix is installed. Poco focused retest evidence is in `docs/test-evidence/2026-08-12-poco-live-refresh-fix-retest/MITRA_POCO_RTSP_RETEST_REPORT.md`.
 - Tune hardware only if delay growth, corruption, reconnect failure, or timestamp problems are reproduced.
 
