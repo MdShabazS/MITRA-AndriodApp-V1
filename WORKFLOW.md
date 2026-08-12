@@ -65,7 +65,11 @@ Future hardware/iOS streaming decisions are tracked in `docs/PRODUCT_STREAMING_A
 - Speech recognizer hard errors use backoff, because some phones do not have the requested offline language pack or lose recognizer service while connected to MITRA WiFi without internet.
 - See `COMMANDS.md` for the full command list.
 
-## 5. Messages, calls, coexistence
+## 5. Cloud frame upload
+
+`BackgroundService` keeps local navigation independent from cloud upload. If the WebSocket is not connected, the app does not JPEG-compress or send cloud frames; it records cloud status as disconnected and continues local inference/navigation from the canonical frame bus. When the WebSocket is connected, it sends one cloud frame at a time and waits for ACK/reply telemetry before sending the next frame.
+
+## 6. Messages, calls, coexistence
 - **Incoming messages** (WhatsApp/SMS) are read aloud by `MitraNotificationListener`; "reply <msg>" sends via the notification's reply action. (Needs Notification access.)
 - **Phone calls:** during a call the recognizer pauses; ~1.5s after the call ends it restarts automatically.
 - The voice loop, RTSP/camera, and engine run together without disturbing each other.

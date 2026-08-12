@@ -140,6 +140,7 @@ Android must:
 - Expose build tags and reconnect reasons in logcat.
 - Save logs for every phone test.
 - Never let cloud delay block live preview or local navigation.
+- Do not prepare or send cloud frame payloads while the WebSocket is disconnected; resume upload only when the WebSocket is connected.
 
 ## Future iOS Requirements
 

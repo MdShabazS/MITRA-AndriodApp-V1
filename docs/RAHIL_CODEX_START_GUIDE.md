@@ -66,6 +66,18 @@ Important: the latest Android retest did not reproduce the earlier 8-second dela
 
 Future Codex should not jump directly into rewriting firmware.
 
+Use an interactive command/output loop:
+
+1. Ask only the next required hardware question.
+2. Give Rahil one small command block to run on the hardware or laptop.
+3. Wait for Rahil to paste the exact output.
+4. Analyze the output against the MITRA product requirements.
+5. Record the finding in the hardware as-built document.
+6. Give the next command only after the previous output is understood.
+7. Ask MdShabazS for clarification only if the output changes the Android contract, future iOS contract, security/secrets handling, or hardware protocol decision.
+
+Do not give Rahil a long list of commands and ask him to run everything blindly. The goal is guided diagnosis: command -> output -> analysis -> next command.
+
 Use this order:
 
 1. Read `docs/RAHIL_CODEX_START_GUIDE.md`.
@@ -128,6 +140,93 @@ Codex should ask these before giving platform-specific commands:
 10. Can we copy the hardware source code, startup scripts, config files, and dependency/version list into this repo or a linked artifact?
 11. Are there any secrets, WiFi passwords, private keys, or tokens in the hardware code that must be removed before upload?
 12. Which parts of the hardware stream are Android-specific today, and what must be kept generic for future iOS?
+```
+
+## Command/Output Workflow For Rahil
+
+When Rahil says `i m rahil lets start`, Codex should begin with this exact workflow.
+
+### Step 1 - Identify Hardware
+
+Ask Rahil to run these on the hardware device:
+
+```bash
+uname -a
+cat /etc/os-release 2>/dev/null || true
+hostnamectl 2>/dev/null || true
+ip addr
+ip route
+```
+
+Rahil should paste the full output. Codex should identify board/OS/network state and then ask for the next command.
+
+### Step 2 - Find Camera And Stream Processes
+
+After Step 1 output is reviewed, ask Rahil to run:
+
+```bash
+ps aux | grep -Ei 'gst|ffmpeg|mediamtx|rtsp|live555|v4l2|camera|libcamera|python' | grep -v grep
+systemctl list-units --type=service --state=running 2>/dev/null | grep -Ei 'gst|ffmpeg|mediamtx|rtsp|camera|libcamera|mitra' || true
+ls -la /dev/video* 2>/dev/null || true
+v4l2-ctl --list-devices 2>/dev/null || true
+```
+
+Codex should identify the camera device, stream server, and startup service candidates.
+
+### Step 3 - Capture Stream Facts From Laptop
+
+After the stream process is known, ask Rahil to connect his laptop to `MITRA_DEVICE` and run:
+
+```bash
+ffprobe -hide_banner -show_streams -show_format rtsp://10.42.0.1:8554/stream
+```
+
+Codex should extract codec, profile, resolution, FPS, bitrate, time base, and transport behavior.
+
+### Step 4 - Capture Encoder Config
+
+Only after Step 2 identifies the stack, Codex should give stack-specific commands:
+
+- GStreamer: inspect the pipeline, encoder properties, queue sizes, keyframe/GOP, bitrate, tune/zerolatency, B-frame settings.
+- FFmpeg: inspect command-line arguments for codec, preset/tune, GOP, bf, bitrate, maxrate/bufsize, transport.
+- MediaMTX/live555/vendor: inspect config files and service units.
+
+Codex should not guess the stack-specific command until Rahil shares Step 2 output.
+
+### Step 5 - Backup Before Tuning
+
+Before any config edit, Codex must guide Rahil to create a backup:
+
+```bash
+mkdir -p ~/mitra_hardware_backup_$(date +%Y%m%d_%H%M%S)
+```
+
+Then Codex should give copy commands based on the actual paths found in Steps 2-4.
+
+### Step 6 - Tune Only After Evidence
+
+Codex should recommend tuning only after backup and evidence. The first tuning target is:
+
+```text
+H.264
+640 x 480 first
+15 FPS first
+1-second GOP/keyframe interval
+no B-frames
+repeat SPS/PPS with keyframes when possible
+capped/stable bitrate
+bounded queues that drop old frames
+timestamp/frame counter proof
+Android now + future iOS compatibility notes
+```
+
+### Step 7 - Return Evidence
+
+After each command group, Codex should ask Rahil to paste output and should update or instruct him to update:
+
+```text
+hardware/as_built/HARDWARE_AS_BUILT_<date>.md
+hardware/test-evidence/<date>/
 ```
 
 ## Product Goal Rahil Is Solving

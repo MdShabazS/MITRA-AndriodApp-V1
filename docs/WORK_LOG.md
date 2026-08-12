@@ -4,6 +4,45 @@ This file records completed project work in a format that app, AI, and hardware 
 
 ## 2026-08-12
 
+### Rahil Guided Hardware Workflow And WebSocket Send Guard
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- Updated Rahil's start guide so Codex guides him through one command/output/analyze step at a time.
+- Added exact first hardware commands for OS/network, stream process discovery, camera discovery, and ffprobe stream capture.
+- Tightened Android cloud upload behavior so JPEG cloud frame payloads are prepared and sent only when the WebSocket is connected.
+
+Files changed:
+
+- `app/src/main/java/com/unique/visionmate/BackgroundService.kt`
+- `README.md`
+- `WORKFLOW.md`
+- `docs/RAHIL_CODEX_START_GUIDE.md`
+- `docs/PRODUCT_STREAMING_ARCHITECTURE.md`
+- `docs/WORK_LOG.md`
+
+App impact:
+
+- When the cloud WebSocket is disconnected, the app skips cloud JPEG payload preparation/sending and keeps local navigation running.
+
+Hardware impact:
+
+- Rahil now has a command-by-command workflow that requires him to paste output before Codex gives the next step.
+
+AI/model impact:
+
+- Local inference/navigation remains independent from cloud connection state.
+
+Validation:
+
+- `:engine:testDebugUnitTest`, `:app:testDebugUnitTest`, `:app:lintDebug`, and `:app:assembleDebug` passed.
+
+Follow-ups:
+
+- Rahil should run the documented command/output workflow after hardware access is available.
+
 ### Rahil Android And iOS Hardware Stream Requirements
 
 Owner: MdShabazS / Codex

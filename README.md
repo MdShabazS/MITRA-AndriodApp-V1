@@ -17,6 +17,7 @@ This branch contains the tested OPPO-working backup version from `BACKUPS/oppo_w
 - The live MITRA screen keeps stream health on the left and cloud send/reply health on the right so testing does not depend only on logcat.
 - If hardware is unavailable, the app falls back to the phone back camera.
 - Frames are sampled for local inference and cloud upload; the live RTSP display can still decode around 30 FPS.
+- Cloud frames are uploaded only when the WebSocket is connected; when cloud is disconnected, local navigation continues without preparing/sending JPEG cloud payloads.
 - Local TFLite models run hazard features; navigation guidance is integrated in the Android app flow.
 - TTS speaks guidance with throttling, cached-detection expiry, and fresh-frame confirmation for local hazards to reduce repeated or stale alerts.
 

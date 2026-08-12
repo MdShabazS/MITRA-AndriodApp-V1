@@ -551,18 +551,9 @@ class BackgroundService : Service() {
                     continue
                 }
 
-                val jpeg = compressBitmapToJpeg(bitmap, 70)
                 val width = bitmap.width
                 val height = bitmap.height
-                if (jpeg == null) {
-                    Log.e("VOICE_BG", "JPEG compression failed")
-                    bitmap.recycle()
-                    Thread.sleep(500)
-                    continue
-                }
-
                 val localPayload = localFrameProcessor.process(bitmap)
-                bitmap.recycle()
 
                 // Cloud reachability == the WebSocket being open. Do NOT probe the Pi/RTSP host here:
                 // that is a different network path and a blocking socket connect would stall the send
@@ -572,6 +563,13 @@ class BackgroundService : Service() {
                 }
                 val ws = webSocket
                 if (cloudUploadEnabled && ws != null) {
+                    val jpeg = compressBitmapToJpeg(bitmap, 70)
+                    bitmap.recycle()
+                    if (jpeg == null) {
+                        Log.e("VOICE_BG", "JPEG compression failed")
+                        Thread.sleep(500)
+                        continue
+                    }
                     val sendStart = System.currentTimeMillis()
                     val currentSeq = ++frameSeq
                     val sent = doSendFrame(deviceId!!, currentSeq, width, height, jpeg, localPayload)
@@ -586,8 +584,11 @@ class BackgroundService : Service() {
                         Log.w("VOICE_BG", "frame_send_failed seq=$currentSeq jpeg_size=${jpeg.size} send_latency=${sendLatency}ms")
                     }
                 } else if (cloudUploadEnabled) {
+                    bitmap.recycle()
                     CloudFrameResultStore.noteStatus("WebSocket disconnected")
                     Log.d("VOICE_BG", "Cloud WS not connected; local inference continues without upload")
+                } else {
+                    bitmap.recycle()
                 }
 
                 maybeRunLocalNav()
