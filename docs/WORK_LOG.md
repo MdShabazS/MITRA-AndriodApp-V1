@@ -4,6 +4,52 @@ This file records completed project work in a format that app, AI, and hardware 
 
 ## 2026-08-12
 
+### Poco Sampled-But-Frozen Video Watchdog
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- Reviewed user report that `Sampled` increased from about `200` to `1300` while the visible hardware video was stuck.
+- Identified this as a different failure from stale PixelCopy: the app was copying a fresh surface timestamp, but the image content could be unchanged.
+- Added a visual fingerprint watchdog in `RtspFrameSource`.
+- If copied frames keep arriving but the visual fingerprint stays identical for a sustained window, Android reconnects with reason `visual-freeze`.
+
+Files changed:
+
+- `app/src/main/java/com/unique/visionmate/RtspFrameSource.kt`
+- `README.md`
+- `WORKFLOW.md`
+- `docs/HARDWARE_INTEGRATION.md`
+- `docs/HARDWARE_STREAM_CONTRACT_AND_QA.md`
+- `docs/ANDROID_DEVICE_COMPATIBILITY_PLAN.md`
+- `docs/test-evidence/2026-08-12-poco-visual-freeze-watchdog/MITRA_POCO_VISUAL_FREEZE_WATCHDOG_REPORT.md`
+- `docs/WORK_LOG.md`
+
+App impact:
+
+- RTSP health now checks visual content change, not only PixelCopy recency.
+- Frozen decoded images should recover automatically instead of silently increasing `Sampled`.
+
+Hardware impact:
+
+- No hardware contract changed.
+- Hardware timestamp/frame-counter proof remains required for exact latency and true camera freshness.
+
+AI/model impact:
+
+- Prevents local AI from continuing to analyze the same frozen image indefinitely.
+
+Validation:
+
+- `:engine:testDebugUnitTest`, `:app:testDebugUnitTest`, `:app:lintDebug`, and `:app:assembleDebug` passed.
+- Debug APK installed successfully on Poco `25028PC03I`.
+
+Follow-ups:
+
+- Run Poco physical validation for the exact visual-freeze recovery.
+- Confirm a healthy still scene does not reconnect repeatedly.
+
 ### Poco Mic Backoff And Adaptive RTSP Refresh
 
 Owner: MdShabazS / Codex

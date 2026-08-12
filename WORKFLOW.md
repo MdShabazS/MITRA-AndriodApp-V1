@@ -51,7 +51,7 @@ feature runs, not one cached or stale frame.
 
 In hardware mode, `RtspFrameSource` opens `rtsp://10.42.0.1:8554/stream` with LibVLC and samples the visible `SurfaceView` through PixelCopy. The app remembers the last transport that produced a frame and tries it first next time.
 
-After about 5 minutes of a live session, Android only refreshes the player if the sampled frame path is already stale. Healthy streams are left alone, preventing a timer-based interruption. If a refresh is needed, reconnect state must remain pending until the restart starts, preventing the repeated 800 ms live-refresh loop reproduced on Poco before the 2026-08-12 fix.
+After about 5 minutes of a live session, Android only refreshes the player if the sampled frame path is already stale. Healthy streams are left alone, preventing a timer-based interruption. If the sampled counter keeps increasing but the copied image fingerprint does not change for a sustained window, Android treats it as a visual freeze and reconnects. If a refresh is needed, reconnect state must remain pending until the restart starts, preventing the repeated 800 ms live-refresh loop reproduced on Poco before the 2026-08-12 fix.
 
 ## 4. Voice commands (anytime, via BackgroundService)
 - **Foreground (home screen):** speak commands directly.

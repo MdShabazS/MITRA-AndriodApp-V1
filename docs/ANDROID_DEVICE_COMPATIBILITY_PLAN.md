@@ -48,6 +48,7 @@ Each phone should run the same checklist:
 | Accessibility | Enable MITRA accessibility service | Service connects; background app controls work |
 | Hardware WiFi | Connect to `MITRA_DEVICE` | Phone receives MITRA-network IP |
 | RTSP | Start hardware stream | First frame captured through PixelCopy |
+| Visual freeze | Keep stream running and watch for stuck image while `Sampled` increases | App reconnects with `visual-freeze` instead of silently sampling a frozen image |
 | Transport memory | Relaunch after one successful stream | App tries last successful RTSP transport first |
 | Local inference | Stream for at least 2 minutes | Engine attaches and emits local results without crash |
 | TTS guidance | Local navigation guidance | TTS speaks useful guidance and throttling prevents spam |
@@ -81,5 +82,6 @@ As of 2026-08-12:
 - OPPO CPH2729 / Android SDK 36 has passing evidence for hardware RTSP, local inference, PixelCopy frame capture, and local navigation TTS.
 - Poco `25028PC03I` / Android 15 reproduced an app-side RTSP live-refresh reconnect storm on the pre-fix build, then passed a 7-minute focused patched retest across the 5-minute refresh threshold. See `docs/test-evidence/2026-08-12-poco-live-refresh-fix-retest/MITRA_POCO_RTSP_RETEST_REPORT.md`.
 - Poco `25028PC03I` / Android 15 later reproduced SpeechRecognizer hard-error mic toggling. The app now uses recognizer backoff and adaptive RTSP refresh; 60-second main-screen mic test and 6.5-minute stream test passed in `docs/test-evidence/2026-08-12-poco-mic-refresh-fix/MITRA_POCO_MIC_AND_REFRESH_FIX_REPORT.md`.
+- Poco user observation later found `Sampled` increasing while the visible video was stuck; Android now includes a visual-freeze watchdog. Physical validation of that exact freeze recovery is pending in `docs/test-evidence/2026-08-12-poco-visual-freeze-watchdog/MITRA_POCO_VISUAL_FREEZE_WATCHDOG_REPORT.md`.
 - Cross-OEM compatibility is still pending for Samsung, Vivo/iQOO, Pixel/AOSP-like, and OnePlus.
 - Cloud WebSocket route is still pending while connected to `MITRA_DEVICE`.

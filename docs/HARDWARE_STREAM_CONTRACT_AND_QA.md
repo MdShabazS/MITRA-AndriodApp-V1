@@ -74,6 +74,7 @@ There is one canonical decoded frame bus: `VideoFrameCache`. The visible preview
   - If `vout` arrives while a first-frame reconnect is already scheduled, Android cancels that pending reconnect and keeps the current transport alive for PixelCopy.
 - Live stream stall threshold after frames start: 4000 ms
 - Live-session refresh: after 5 minutes of a running RTSP session, Android reconnects the player only if sampled frames are already stale enough to justify recovery. Healthy streams are not interrupted by a timer-only refresh. Reconnect state must remain pending until the restart starts so stale playback/frame callbacks cannot cancel the scheduled refresh before it runs.
+- Visual-freeze recovery: Android fingerprints copied frames. If copied frames continue but the visual fingerprint is unchanged for a sustained window, Android schedules `visual-freeze` reconnect. This handles the case where the `Sampled` count rises while the visible decoded image is stuck.
 - Reconnect delay: 450 ms
 - Transport memory:
   - The first transport that produces a captured frame is saved in app preferences.

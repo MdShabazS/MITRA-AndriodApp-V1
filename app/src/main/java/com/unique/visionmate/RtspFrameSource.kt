@@ -64,10 +64,14 @@ class RtspFrameSource(
         private const val FRAME_DUMP_INTERVAL_MS = 2_000L
         private const val FRAME_DUMP_MAX = 40
         private const val CAPTURE_FAILURE_LOG_INTERVAL_MS = 2_000L
+        private const val VISUAL_FREEZE_MS = 30_000L
+        private const val VISUAL_FREEZE_MIN_SAME_FRAMES = 30
+        private const val FINGERPRINT_GRID_X = 12
+        private const val FINGERPRINT_GRID_Y = 8
 
         const val PREF_DUMP_FRAMES = "offload.debug.dumpFrames"
         const val PREF_LAST_GOOD_TRANSPORT = "rtsp.last_good_transport"
-        const val BUILD_TAG = "rtsp-adaptive-refresh-stt-backoff"
+        const val BUILD_TAG = "rtsp-visual-freeze-watchdog"
     }
 
     private val mainHandler = Handler(context.mainLooper)
@@ -89,10 +93,13 @@ class RtspFrameSource(
     @Volatile private var pendingReconnectReason: String? = null
     @Volatile private var capturesOk = 0L
     @Volatile private var lastFrameMs = 0L
+    @Volatile private var lastVisualChangeMs = 0L
     @Volatile private var lastVideoOutputMs = 0L
     @Volatile private var playerStartedMs = 0L
     @Volatile private var captureInFlight = false
     @Volatile private var transportMode = loadLastGoodTransport()
+    @Volatile private var sameVisualFrameCount = 0
+    private var lastVisualSignature: Long? = null
 
     private val dumpFrames: Boolean by lazy {
         context.getSharedPreferences(MainActivity.PREFS_NAME, Context.MODE_PRIVATE)
@@ -108,6 +115,9 @@ class RtspFrameSource(
         running = true
         capturesOk = 0L
         lastFrameMs = SystemClock.elapsedRealtime()
+        lastVisualChangeMs = lastFrameMs
+        lastVisualSignature = null
+        sameVisualFrameCount = 0
         lastVideoOutputMs = 0L
         callbacks.onVideoSize(captureWidth, captureHeight)
         registerSurfaceCallback()
@@ -336,6 +346,7 @@ class RtspFrameSource(
             }
             val now = SystemClock.elapsedRealtime()
             lastFrameMs = now
+            updateVisualFreshness(dest, now)
             if (capturesOk++ == 0L) {
                 Log.i(TAG, "first frame captured ${dest.width}x${dest.height} (PixelCopy)")
                 rememberLastGoodTransport()
@@ -358,6 +369,34 @@ class RtspFrameSource(
         }
         existing?.let { if (!it.isRecycled) it.recycle() }
         return Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).also { captureBitmap = it }
+    }
+
+    private fun updateVisualFreshness(bitmap: Bitmap, now: Long) {
+        val signature = visualFingerprint(bitmap)
+        val previous = lastVisualSignature
+        if (previous == null || previous != signature) {
+            lastVisualSignature = signature
+            lastVisualChangeMs = now
+            sameVisualFrameCount = 0
+        } else {
+            sameVisualFrameCount++
+        }
+    }
+
+    private fun visualFingerprint(bitmap: Bitmap): Long {
+        var hash = -0x340d631b7bdddcdbL
+        val width = bitmap.width.coerceAtLeast(1)
+        val height = bitmap.height.coerceAtLeast(1)
+        for (gy in 0 until FINGERPRINT_GRID_Y) {
+            val y = ((gy + 1) * height / (FINGERPRINT_GRID_Y + 1)).coerceIn(0, height - 1)
+            for (gx in 0 until FINGERPRINT_GRID_X) {
+                val x = ((gx + 1) * width / (FINGERPRINT_GRID_X + 1)).coerceIn(0, width - 1)
+                val pixel = bitmap.getPixel(x, y)
+                val quantized = pixel and 0x00F0F0F0
+                hash = (hash xor quantized.toLong()) * 0x100000001b3L
+            }
+        }
+        return hash
     }
 
     private fun maybeDump(bitmap: Bitmap, now: Long) {
@@ -421,6 +460,9 @@ class RtspFrameSource(
         if (running) {
             reconnectRestartStarted = true
             lastFrameMs = SystemClock.elapsedRealtime()
+            lastVisualChangeMs = lastFrameMs
+            lastVisualSignature = null
+            sameVisualFrameCount = 0
             startPlayerWhenSurfaceReady("reconnect", forceRestart = true)
             mainHandler.removeCallbacks(reconnectAttemptTimeoutRunnable)
             mainHandler.postDelayed(reconnectAttemptTimeoutRunnable, RECONNECT_ATTEMPT_TIMEOUT_MS)
@@ -451,7 +493,9 @@ class RtspFrameSource(
     }
 
     private fun clearReconnectStateAfterCapture() {
-        if (!reconnectScheduled || reconnectRestartStarted || pendingReconnectReason != "live-refresh") {
+        val mustExecute = pendingReconnectReason == "live-refresh" ||
+            pendingReconnectReason == "visual-freeze"
+        if (!reconnectScheduled || reconnectRestartStarted || !mustExecute) {
             clearReconnectState()
         }
     }
@@ -466,6 +510,11 @@ class RtspFrameSource(
                 return
             }
             val age = SystemClock.elapsedRealtime() - lastFrameMs
+            val visualAge = if (lastVisualChangeMs > 0L) {
+                SystemClock.elapsedRealtime() - lastVisualChangeMs
+            } else {
+                0L
+            }
             val voutGraceDeadlineMs = if (lastVideoOutputMs > 0L) {
                 (lastVideoOutputMs - lastFrameMs).coerceAtLeast(0L) + FIRST_FRAME_AFTER_VOUT_GRACE_MS
             } else {
@@ -480,6 +529,17 @@ class RtspFrameSource(
             if (age > allowedStallMs && !reconnectScheduled) {
                 Log.w(TAG, "watchdog: no captured frame for ${age}ms; reconnecting")
                 scheduleReconnect("stall")
+            } else if (
+                capturesOk > 0L &&
+                visualAge > VISUAL_FREEZE_MS &&
+                sameVisualFrameCount >= VISUAL_FREEZE_MIN_SAME_FRAMES &&
+                !reconnectScheduled
+            ) {
+                Log.w(
+                    TAG,
+                    "watchdog: visual freeze for ${visualAge}ms across $sameVisualFrameCount copied frames; reconnecting"
+                )
+                scheduleReconnect("visual-freeze")
             } else if (
                 capturesOk > 0L &&
                 playerStartedMs > 0L &&
