@@ -83,10 +83,29 @@ Add an embedded offline command-recognition path for fixed MITRA commands:
 - Must have Android implementation first, then a matching iOS design using the same command grammar.
 - Android `SpeechRecognizer` can remain as a secondary/general dictation path for names, WhatsApp messages, and free-form Q&A when internet or device recognizer support exists.
 
+## 2026-08-12 Recovery Fix
+
+Follow-up app change:
+
+- When Android returns `ERROR_LANGUAGE_UNAVAILABLE`, MITRA now checks for validated internet.
+- If validated internet is available, MITRA requests the Android offline speech model download.
+- During that internet-backed recovery state, MITRA temporarily allows online recognition so Poco can accept commands while the offline model is being prepared.
+- If no validated internet exists, MITRA logs the blocker clearly and tells setup users to connect the phone to internet once.
+
+Verified on Poco with the current no-internet state:
+
+```text
+W/VOICE_BG: offline speech model missing; no validated internet for model download source=runtime-error-13
+W/VOICE_BG: offline speech model unavailable and no internet fallback; connect this phone to internet once to prepare voice commands
+```
+
+This is the maximum fix possible while still depending on Android's system recognizer: the app can prepare/download the missing offline pack when internet exists, but it cannot manufacture that language model while the phone is already on a no-internet MITRA route.
+
 Raw evidence files saved in this folder:
 
 ```text
 poco_offline_speech_fix_logcat.log
+poco_speech_recovery_logcat.log
 poco_getprop.txt
 poco_connectivity.txt
 ```

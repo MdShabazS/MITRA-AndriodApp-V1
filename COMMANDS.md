@@ -56,4 +56,4 @@ Accepted wake-word forms are **mitra**, **mi tra**, and **mithra**. Near-miss wo
 - "read text" / "take picture" need an active camera or RTSP frame.
 - During a phone call, voice pauses and auto-resumes ~1.5s after the call ends.
 - Message reading needs **Notification access**; background app-opening needs the **Accessibility** service on.
-- MITRA commands now prefer Android on-device/offline recognition with `en-US`, because `MITRA_DEVICE` WiFi normally has no internet route. If the phone has no usable offline/on-device recognizer, MITRA backs off and logs the recognizer mode instead of rapidly restarting the mic.
+- MITRA commands prefer Android on-device/offline recognition with `en-US`, because `MITRA_DEVICE` WiFi normally has no internet route. If the offline model is missing and the phone has internet, MITRA requests the Android offline speech model and temporarily allows online recognition. If there is no internet and no offline model, MITRA backs off and logs the exact blocker instead of rapidly restarting the mic.

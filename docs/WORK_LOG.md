@@ -4,6 +4,40 @@ This file records completed project work in a format that app, AI, and hardware 
 
 ## 2026-08-12
 
+### Poco Offline Speech Model Recovery
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- Added recovery handling for `ERROR_LANGUAGE_UNAVAILABLE` after Poco proved the Android offline English recognizer model was missing.
+- The app now checks for validated internet and requests Android's offline speech model download on API 33+.
+- If internet exists, the app temporarily allows online recognition so commands can work while the offline model is being prepared.
+- If there is no internet, setup/runtime logs now say the exact blocker instead of leaving the user with repeated speech errors.
+
+Files changed:
+
+- `app/src/main/java/com/unique/visionmate/MitraSpeechRecognizerConfig.kt`
+- `app/src/main/java/com/unique/visionmate/BackgroundService.kt`
+- `app/src/main/java/com/unique/visionmate/MainActivity.kt`
+- `COMMANDS.md`
+- `docs/ANDROID_DEVICE_COMPATIBILITY_PLAN.md`
+- `docs/WORK_LOG.md`
+- `docs/test-evidence/2026-08-12-poco-offline-speech-fix/MITRA_POCO_OFFLINE_SPEECH_FIX_REPORT.md`
+
+Validation:
+
+- `:app:testDebugUnitTest`, `:app:lintDebug`, and `:app:assembleDebug` passed.
+- Installed the recovery APK on Poco.
+- Verified current Poco/no-internet logs show the model-download blocker clearly: `offline speech model missing; no validated internet`.
+- Raw focused evidence saved locally as `docs/test-evidence/2026-08-12-poco-offline-speech-fix/poco_speech_recovery_logcat.log`.
+
+Follow-ups:
+
+- Connect Poco to a validated internet network once, open MITRA, and confirm the offline model download succeeds.
+- After that, reconnect Poco to MITRA hardware WiFi and retest `mitra what is the time`, `mitra open youtube`, and `mitra start mitra`.
+- For release-grade equality on phones without Android offline recognizer support, add an embedded offline fixed-command recognizer.
+
 ### Offline-Preferred Voice Recognition For Poco / Cross-Phone Commands
 
 Owner: MdShabazS / Codex

@@ -103,6 +103,8 @@ class BackgroundService : Service() {
     private lateinit var speechIntent: Intent
     private var speechRecognizerMode = MitraSpeechRecognizerConfig.MODE_DEFAULT
     private var forceDefaultSpeechRecognizer = false
+    private var allowOnlineSpeechFallback = false
+    private var lastSpeechModelDownloadRequestAtMs = 0L
     private lateinit var tts: TextToSpeech
     private lateinit var audioManager: AudioManager
     private lateinit var connectivityManager: ConnectivityManager
@@ -932,12 +934,18 @@ class BackgroundService : Service() {
         // Destroy old instance if it exists before creating a new one
         try { speechRecognizer.destroy() } catch (_: Exception) {}
 
-        val created = MitraSpeechRecognizerConfig.create(this, forceDefaultSpeechRecognizer, "VOICE_BG")
+        val created = MitraSpeechRecognizerConfig.create(
+            this,
+            forceDefaultSpeechRecognizer,
+            allowOnlineSpeechFallback,
+            "VOICE_BG"
+        )
         speechRecognizer = created.recognizer
         speechRecognizerMode = created.mode
 
         speechIntent = MitraSpeechRecognizerConfig.commandIntent(
             maxResults = 5,
+            preferOffline = created.preferOffline,
             possiblyCompleteSilenceMs = 5000L,
             completeSilenceMs = 7000L
         )
@@ -972,6 +980,9 @@ class BackgroundService : Service() {
                         "VOICE_BG",
                         "on-device recognizer failed error=$error; falling back to default offline-preferred recognizer"
                     )
+                }
+                if (handleOfflineSpeechModelUnavailable(error)) {
+                    return
                 }
 
                 when (error) {
@@ -1023,6 +1034,48 @@ class BackgroundService : Service() {
             override fun onPartialResults(partialResults: Bundle?) {}
             override fun onEvent(eventType: Int, params: Bundle?) {}
         })
+    }
+
+    private fun handleOfflineSpeechModelUnavailable(error: Int): Boolean {
+        if (error != STT_LANGUAGE_UNAVAILABLE_ERROR_CODE) return false
+
+        maybeRequestOfflineSpeechModelDownload("runtime-error-$error")
+
+        if (!allowOnlineSpeechFallback && MitraSpeechRecognizerConfig.hasValidatedInternet(this)) {
+            allowOnlineSpeechFallback = true
+            forceDefaultSpeechRecognizer = true
+            resetSpeechErrorBackoff()
+            Log.w(
+                "VOICE_BG",
+                "offline speech model unavailable; validated internet found, temporarily allowing online recognition"
+            )
+            scheduleListeningRetry(800L, recreate = true)
+            return true
+        }
+
+        Log.w(
+            "VOICE_BG",
+            "offline speech model unavailable and no internet fallback; connect this phone to internet once to prepare voice commands"
+        )
+        return false
+    }
+
+    private fun maybeRequestOfflineSpeechModelDownload(source: String) {
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastSpeechModelDownloadRequestAtMs < 30 * 60 * 1000L) return
+        val requested = MitraSpeechRecognizerConfig.requestOfflineModelDownload(
+            context = this,
+            recognizer = speechRecognizer,
+            intent = MitraSpeechRecognizerConfig.commandIntent(maxResults = 5, preferOffline = true),
+            logTag = "VOICE_BG",
+            source = source
+        ) {
+            allowOnlineSpeechFallback = false
+            forceDefaultSpeechRecognizer = false
+            resetSpeechErrorBackoff()
+            setupSpeechRecognizer()
+        }
+        if (requested) lastSpeechModelDownloadRequestAtMs = now
     }
 
     private fun resetSpeechErrorBackoff() {

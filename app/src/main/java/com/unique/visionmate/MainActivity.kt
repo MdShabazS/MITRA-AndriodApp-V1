@@ -79,6 +79,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var speechIntent: Intent
     private var speechRecognizerMode = MitraSpeechRecognizerConfig.MODE_DEFAULT
     private var forceDefaultSpeechRecognizer = false
+    private var allowOnlineSpeechFallback = false
+    private var lastSpeechModelDownloadRequestAtMs = 0L
     private var isListening = false
     private var sttHardErrorCount = 0
     private var sttBackoffUntilMs = 0L
@@ -1057,11 +1059,15 @@ class MainActivity : AppCompatActivity() {
         val created = MitraSpeechRecognizerConfig.create(
             this,
             forceDefaultSpeechRecognizer,
+            allowOnlineSpeechFallback,
             "MITRA_SETUP_STT"
         )
         speechRecognizer = created.recognizer
         speechRecognizerMode = created.mode
-        speechIntent = MitraSpeechRecognizerConfig.commandIntent(maxResults = 3)
+        speechIntent = MitraSpeechRecognizerConfig.commandIntent(
+            maxResults = 3,
+            preferOffline = created.preferOffline
+        )
         Log.i(
             "MITRA_SETUP_STT",
             "setup recognizer mode=$speechRecognizerMode locale=${created.languageTag} preferOffline=${created.preferOffline}"
@@ -1088,6 +1094,9 @@ class MainActivity : AppCompatActivity() {
                         "on-device setup recognizer failed error=$error; falling back to default offline-preferred recognizer"
                     )
                 }
+                if (handleSetupOfflineSpeechModelUnavailable(error)) {
+                    return
+                }
                 if (waitingForPassword || waitingForYes) {
                     scheduleSetupSpeechRetry(error)
                 }
@@ -1101,6 +1110,51 @@ class MainActivity : AppCompatActivity() {
             override fun onPartialResults(partialResults: Bundle?) {}
             override fun onEvent(eventType: Int, params: Bundle?) {}
         })
+    }
+
+    private fun handleSetupOfflineSpeechModelUnavailable(error: Int): Boolean {
+        if (error != STT_LANGUAGE_UNAVAILABLE_ERROR_CODE) return false
+
+        maybeRequestOfflineSpeechModelDownload("setup-error-$error")
+
+        if (!allowOnlineSpeechFallback && MitraSpeechRecognizerConfig.hasValidatedInternet(this)) {
+            allowOnlineSpeechFallback = true
+            forceDefaultSpeechRecognizer = true
+            resetSpeechErrorBackoff()
+            statusView.text = "Preparing voice commands with internet fallback."
+            Log.w(
+                "MITRA_SETUP_STT",
+                "offline setup speech model unavailable; validated internet found, temporarily allowing online recognition"
+            )
+            scheduleSetupListeningRetry(800L, recreate = true)
+            return true
+        }
+
+        statusView.text = "Offline voice model missing. Connect this phone to internet once, then reopen MITRA."
+        Log.w(
+            "MITRA_SETUP_STT",
+            "offline setup speech model unavailable and no internet fallback"
+        )
+        return false
+    }
+
+    private fun maybeRequestOfflineSpeechModelDownload(source: String) {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastSpeechModelDownloadRequestAtMs < 30 * 60 * 1000L) return
+        val requested = MitraSpeechRecognizerConfig.requestOfflineModelDownload(
+            context = this,
+            recognizer = speechRecognizer,
+            intent = MitraSpeechRecognizerConfig.commandIntent(maxResults = 3, preferOffline = true),
+            logTag = "MITRA_SETUP_STT",
+            source = source
+        ) {
+            allowOnlineSpeechFallback = false
+            forceDefaultSpeechRecognizer = false
+            resetSpeechErrorBackoff()
+            setupSpeechRecognizer()
+            statusView.text = "Offline voice commands are ready."
+        }
+        if (requested) lastSpeechModelDownloadRequestAtMs = now
     }
 
     private fun handleVoiceInput(text: String) {
