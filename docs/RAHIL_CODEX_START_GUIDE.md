@@ -33,26 +33,31 @@ Full firmware rebuild is a fallback only, not the first action.
 
 ## What Rahil Should Do First
 
-1. Ask MdShabazS to add you as a collaborator on:
+Collaborator status:
+
+- Rahil has been added as a collaborator to the personal repo by MdShabazS.
+- Working repo:
 
 ```text
 https://github.com/MdShabazS/MITRA-AndriodApp-V1
 ```
 
-2. Open Codex on your laptop.
-3. Give Codex this repository as the reference repo:
+Start steps:
+
+1. Open Codex on your laptop.
+2. Give Codex this repository as the reference repo:
 
 ```text
 https://github.com/MdShabazS/MITRA-AndriodApp-V1
 ```
 
-4. Tell Codex to read this file first:
+3. Tell Codex to read this file first:
 
 ```text
 docs/RAHIL_CODEX_START_GUIDE.md
 ```
 
-5. Paste this prompt:
+4. Paste this prompt:
 
 ```text
 i m rahil lets start

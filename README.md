@@ -25,6 +25,8 @@ This branch contains the tested OPPO-working backup version from `BACKUPS/oppo_w
 
 Latest decision after the 2026-08-12 Poco retest: do not reset or recode the hardware from scratch first. The earlier 8-second app delay did not reproduce in the later OPPO retest, and the Poco test reproduced an Android RTSP live-refresh reconnect storm that was fixed in the app.
 
+Rahil has been added as a collaborator to the personal repository. He should start from `docs/RAHIL_CODEX_START_GUIDE.md` and use the command/output workflow there.
+
 Rahil's current priority is to document and preserve the working hardware implementation, then tune only what new evidence proves is needed:
 
 - Fill `docs/HARDWARE_AS_BUILT_CAPTURE_TEMPLATE.md` with board, camera, encoder, RTSP server, stream format, and startup details.

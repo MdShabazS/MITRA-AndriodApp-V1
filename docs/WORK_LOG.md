@@ -4,6 +4,41 @@ This file records completed project work in a format that app, AI, and hardware 
 
 ## 2026-08-12
 
+### Rahil Collaborator Access Recorded
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- Recorded that Rahil has been added as a collaborator to the personal GitHub repository.
+- Updated Rahil's start guide so he begins directly with Codex and the repo link instead of asking for collaborator access.
+
+Files changed:
+
+- `README.md`
+- `docs/RAHIL_CODEX_START_GUIDE.md`
+- `docs/WORK_LOG.md`
+
+App impact:
+
+- No APK behavior changed.
+
+Hardware impact:
+
+- Rahil can now start the hardware command/output workflow directly from the repo.
+
+AI/model impact:
+
+- None.
+
+Validation:
+
+- Markdown-only change; no Android build required.
+
+Follow-ups:
+
+- Rahil should open Codex with the repo link and paste the prompt from `docs/RAHIL_CODEX_START_GUIDE.md`.
+
 ### Rahil Guided Hardware Workflow And WebSocket Send Guard
 
 Owner: MdShabazS / Codex
