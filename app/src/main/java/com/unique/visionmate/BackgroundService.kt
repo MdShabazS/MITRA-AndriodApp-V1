@@ -140,6 +140,7 @@ class BackgroundService : Service() {
     private val frameAckTimeoutRunnable = Runnable {
         if (frameAckInFlight.compareAndSet(true, false)) {
             synchronized(pendingFrameLock) { pendingFrame = null }
+            CloudFrameResultStore.noteAckTimeout()
             Log.d("VOICE_BG", "Frame ack timeout; clearing outstanding frame")
         }
     }
@@ -451,6 +452,7 @@ class BackgroundService : Service() {
     private fun startFrameStreaming() {
         if (streamingActive) return
         streamingActive = true
+        CloudFrameResultStore.resetTelemetry("streaming-started")
         Log.d("VOICE_BG", "Starting frame streaming")
         sendStreamingStatus("Streaming started")
         frameStreamerThread = Thread { frameStreamLoop() }.apply { start() }
@@ -462,11 +464,13 @@ class BackgroundService : Service() {
         frameStreamerThread = null
         frameAckInFlight.set(false)
         mainHandler.removeCallbacks(frameAckTimeoutRunnable)
+        CloudFrameResultStore.noteStatus("streaming-stopped")
         sendStreamingStatus("Streaming stopped")
         Log.d("VOICE_BG", "Stopped frame streaming")
     }
 
     private fun sendStreamingStatus(message: String) {
+        CloudFrameResultStore.noteStatus(message)
         val intent = Intent(ACTION_STREAMING_STATUS).apply {
             setPackage(packageName)
             putExtra(EXTRA_STATUS_MESSAGE, message)
@@ -572,12 +576,17 @@ class BackgroundService : Service() {
                     val currentSeq = ++frameSeq
                     val sent = doSendFrame(deviceId!!, currentSeq, width, height, jpeg, localPayload)
                     val sendLatency = System.currentTimeMillis() - sendStart
-                    Log.d("VOICE_BG", "frame_sent seq=$currentSeq jpeg_size=${jpeg.size} send_latency=${sendLatency}ms")
                     if (sent) {
+                        CloudFrameResultStore.noteFrameSent(currentSeq)
+                        Log.d("VOICE_BG", "frame_sent seq=$currentSeq jpeg_size=${jpeg.size} send_latency=${sendLatency}ms")
                         frameAckInFlight.set(true)
                         mainHandler.postDelayed(frameAckTimeoutRunnable, FRAME_ACK_TIMEOUT_MS)
+                    } else {
+                        CloudFrameResultStore.noteFrameSendFailed()
+                        Log.w("VOICE_BG", "frame_send_failed seq=$currentSeq jpeg_size=${jpeg.size} send_latency=${sendLatency}ms")
                     }
                 } else if (cloudUploadEnabled) {
+                    CloudFrameResultStore.noteStatus("WebSocket disconnected")
                     Log.d("VOICE_BG", "Cloud WS not connected; local inference continues without upload")
                 }
 
@@ -761,7 +770,11 @@ class BackgroundService : Service() {
                 packAny(this, localPayload.mobileFeatureOutputs)
             }
             packer.close()
-            ws.send(packer.toByteArray().toByteString())
+            val sent = ws.send(packer.toByteArray().toByteString())
+            if (!sent) {
+                synchronized(pendingFrameLock) { pendingFrame = null }
+            }
+            sent
         } catch (e: Exception) {
             Log.e("VOICE_BG", "Failed to send frame: ${e.message}")
             synchronized(pendingFrameLock) { pendingFrame = null }
@@ -2103,6 +2116,7 @@ class BackgroundService : Service() {
     private fun markFrameAckReceived() {
         if (frameAckInFlight.compareAndSet(true, false)) {
             mainHandler.removeCallbacks(frameAckTimeoutRunnable)
+            CloudFrameResultStore.noteAck(null)
             Log.d("VOICE_BG", "Frame ack received")
         }
     }
@@ -2179,6 +2193,7 @@ class BackgroundService : Service() {
             if (current == null) {
                 if (frameAckInFlight.compareAndSet(true, false)) {
                     mainHandler.removeCallbacks(frameAckTimeoutRunnable)
+                    CloudFrameResultStore.noteAck(seq)
                     Log.d("VOICE_BG", "Frame ack received without matching pending frame")
                 }
                 return
@@ -2187,12 +2202,14 @@ class BackgroundService : Service() {
                 pendingFrame = null
                 if (frameAckInFlight.compareAndSet(true, false)) {
                     mainHandler.removeCallbacks(frameAckTimeoutRunnable)
+                    CloudFrameResultStore.noteAck(current.seq)
                     Log.d("VOICE_BG", "Frame ack received for seq=${current.seq}")
                 }
             } else if (seq == null && timestamp == null) {
                 pendingFrame = null
                 if (frameAckInFlight.compareAndSet(true, false)) {
                     mainHandler.removeCallbacks(frameAckTimeoutRunnable)
+                    CloudFrameResultStore.noteAck(current.seq)
                     Log.d("VOICE_BG", "Frame ack received (no sequence header)")
                 }
             } else {

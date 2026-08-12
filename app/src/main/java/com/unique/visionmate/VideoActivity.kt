@@ -13,6 +13,7 @@ import android.net.wifi.WifiNetworkSpecifier
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import android.view.Gravity
 import android.view.SurfaceView
@@ -79,6 +80,7 @@ class VideoActivity : AppCompatActivity(), RtspFrameSource.Callbacks {
 
     private lateinit var videoSurfaceView: SurfaceView
     private lateinit var streamStatusView: TextView
+    private lateinit var cloudStatusView: TextView
     private lateinit var modelStatusView: TextView
     private lateinit var localInferenceView: TextView
     private lateinit var detectionDebugView: TextView
@@ -115,6 +117,7 @@ class VideoActivity : AppCompatActivity(), RtspFrameSource.Callbacks {
 
         videoSurfaceView = findViewById(R.id.videoSurfaceView)
         streamStatusView = findViewById(R.id.streamStatusView)
+        cloudStatusView = findViewById(R.id.cloudStatusView)
         modelStatusView = findViewById(R.id.modelStatusView)
         localInferenceView = findViewById(R.id.localInferenceView)
         detectionDebugView = findViewById(R.id.detectionDebugView)
@@ -336,6 +339,7 @@ class VideoActivity : AppCompatActivity(), RtspFrameSource.Callbacks {
         override fun run() {
             if (isFinishing || isDestroyed) return
             renderStatusCard()
+            renderCloudStatusCard()
             if (!engineAttached && isStreamFrameFresh()) attachEngine()
             mainHandler.postDelayed(this, UI_TICK_MS)
         }
@@ -349,15 +353,53 @@ class VideoActivity : AppCompatActivity(), RtspFrameSource.Callbacks {
         val s = VideoFrameCache.stats()
         val hasFreshFrame = s.ageMs != Long.MAX_VALUE && s.ageMs <= 1500L
         streamStatusView.text = buildString {
-            append("MITRA hardware: ")
+            append("Stream\n")
+            append("State: ")
             append(if (hasFreshFrame) "live" else streamStatus)
             append('\n')
-            append("Sampled: ${s.totalFrames}  Sample FPS: ${"%.1f".format(s.fps)}")
+            append("Sampled: ${s.totalFrames}\n")
+            append("FPS: ${"%.1f".format(s.fps)}")
             if (s.width > 0) append("  ${s.width}x${s.height}")
             append('\n')
             append("Last frame: ")
-            append(if (s.ageMs == Long.MAX_VALUE) "never" else "${s.ageMs}ms ago")
+            append(formatAge(s.ageMs))
+            append('\n')
+            append("Source: RTSP H.264")
         }
+    }
+
+    private fun renderCloudStatusCard() {
+        val telemetry = CloudFrameResultStore.telemetry()
+        cloudStatusView.text = buildString {
+            append("Cloud\n")
+            append("State: ").append(telemetry.status).append('\n')
+            append("Frames sent: ").append(telemetry.framesSent).append('\n')
+            append("Replies: ").append(telemetry.repliesReceived).append('\n')
+            append("ACK: ")
+            append(telemetry.lastAckSeq?.let { "#$it" } ?: "none")
+            if (telemetry.ackTimeouts > 0L) append("  timeout=").append(telemetry.ackTimeouts)
+            append('\n')
+            append("Last reply: ").append(formatAgeFromTimestamp(telemetry.lastReplyAtMs)).append('\n')
+            append("Type: ").append(telemetry.lastReplyType ?: "n/a")
+            telemetry.lastReplyFrameId?.let { append('\n').append("Frame: ").append(it.take(18)) }
+            telemetry.lastOutputText?.takeIf { it.isNotBlank() }?.let {
+                append('\n').append("Text: ").append(it.take(44))
+            }
+        }
+    }
+
+    private fun formatAge(ageMs: Long): String {
+        return when {
+            ageMs == Long.MAX_VALUE -> "never"
+            ageMs < 1_000L -> "${ageMs}ms ago"
+            ageMs < 60_000L -> "${ageMs / 1_000L}s ago"
+            else -> "${ageMs / 60_000L}m ago"
+        }
+    }
+
+    private fun formatAgeFromTimestamp(timestampMs: Long): String {
+        if (timestampMs <= 0L) return "none"
+        return formatAge(SystemClock.elapsedRealtime() - timestampMs)
     }
 
     private fun attachEngine() {

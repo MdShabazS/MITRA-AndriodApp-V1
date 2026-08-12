@@ -26,16 +26,29 @@
 
     <TextView
         android:id="@+id/streamStatusView"
-        android:layout_width="wrap_content"
+        android:layout_width="210dp"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|start"
+        android:layout_gravity="center_vertical|start"
         android:layout_marginStart="12dp"
-        android:layout_marginBottom="12dp"
         android:layout_marginEnd="12dp"
         android:background="#AA000000"
-        android:maxWidth="430dp"
+        android:maxWidth="230dp"
         android:padding="8dp"
-        android:text="MITRA hardware: connecting\nFrames: 0  FPS: 0.0\nLast frame: never"
+        android:text="Stream\nState: connecting\nSampled: 0\nFPS: 0.0\nLast frame: never"
+        android:textColor="#FFFFFF"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/cloudStatusView"
+        android:layout_width="210dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical|end"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:background="#AA000000"
+        android:maxWidth="230dp"
+        android:padding="8dp"
+        android:text="Cloud\nState: starting\nFrames sent: 0\nReplies: 0\nLast reply: none"
         android:textColor="#FFFFFF"
         android:textSize="13sp" />
 

@@ -33,7 +33,7 @@ KG schema (graphify): nodes (`id`, `kind`, `path`, `name`, `summary`), edges (`s
 
 Single Gradle module `:app` — Android client for the MITRA assistive-vision device.
 
-- **Pairs over WiFi** with `MITRA_DEVICE` (hardware), then opens an RTSP stream `rtsp://10.42.0.1:8554/stream` in `VideoActivity` via Media3 ExoPlayer into a `TextureView`.
+- **Pairs over WiFi** with `MITRA_DEVICE` (hardware), then opens an RTSP stream `rtsp://10.42.0.1:8554/stream` in `VideoActivity` via LibVLC into a `SurfaceView`.
 - **Voice loop** in `BackgroundService` (foreground service, mic + media playback): wake-word → command → either local action (open app, call, navigate, WhatsApp send, OCR, take picture) or remote Q&A over WebSocket+MessagePack to `ws://216.48.182.37:8766/ws/<device_id>`.
 - **OCR today** uses ML Kit `text-recognition:16.0.0` against `VideoActivity.getScreenBitmap()`. Already on-device — do not "replace EasyOCR" here; the mobile path is already mobile-native.
 - **Accessibility service** `AutoSendAccessibilityService` auto-confirms WhatsApp send dialogs.
@@ -150,6 +150,7 @@ Min/Target SDK: 29 / 36. JVM target 11. Namespace `com.unique.visionmate`.
 - When in doubt about backend semantics, **query the backend KG**. Do not open `D:\MITRA\Cloud-infra\**` source unless the KG is silent and the user has approved a deeper read.
 - This file is part of the contract. Update it when a §3 decision changes; never let it drift.
 - Every meaningful code, workflow, AI, model, or hardware-contract change must update Markdown documentation in the same branch. Read and follow [docs/DOCUMENTATION_STANDARDS.md](docs/DOCUMENTATION_STANDARDS.md), add a short entry to [docs/WORK_LOG.md](docs/WORK_LOG.md), and update [docs/HARDWARE_INTEGRATION.md](docs/HARDWARE_INTEGRATION.md) whenever WiFi, RTSP, camera, streaming, or hardware assumptions change.
+- Product-level Android/iOS/hardware stream direction lives in [docs/PRODUCT_STREAMING_ARCHITECTURE.md](docs/PRODUCT_STREAMING_ARCHITECTURE.md). Do not change hardware stream protocol or encoder settings without the backup-first rule and hardware profile capture described there.
 - Work from the personal repo remote first. The organization repo must be treated as an upstream review target, not a default push target.
 
 ---

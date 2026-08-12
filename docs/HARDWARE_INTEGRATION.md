@@ -44,6 +44,13 @@ Current assumptions:
 - If the stream is unavailable, the app should fail gracefully and use the phone camera fallback where possible.
 - App-reported latest-frame age is not true camera latency; hardware should provide a timestamp overlay or embedded source timestamp for exact latency testing.
 
+Product direction:
+
+- Current RTSP/H.264 remains the Android v1 path until the hardware stream profile is fully captured.
+- Future Android + iOS streaming must be selected from a documented protocol decision. WebRTC/H.264 is the main product candidate to evaluate after Rahil backs up and documents the current firmware.
+- Before any hardware stream rewrite, Rahil must save a full hardware backup and create `docs/HARDWARE_DEVICE_PROFILE.md` with codec, FPS, bitrate, GOP/keyframe interval, SPS/PPS behavior, thermal notes, and 15-minute VLC/MITRA results.
+- The full product-level streaming plan is in `docs/PRODUCT_STREAMING_ARCHITECTURE.md`.
+
 For the full hardware stream contract, Android decode path, cloud payload shape, and QA checklist, see `docs/HARDWARE_STREAM_CONTRACT_AND_QA.md`.
 
 Current 2026-08-12 decision: the later OPPO retest did not reproduce the earlier 8-second delay, and the Poco retest proved one app-side live-refresh reconnect storm that was fixed in Android. Rahil should not reset or recode the hardware from scratch first. Rahil should first complete `docs/HARDWARE_AS_BUILT_CAPTURE_TEMPLATE.md`, back up/upload the current hardware code/config, add timestamp/frame-counter proof if missing, and tune only if new evidence points to hardware.

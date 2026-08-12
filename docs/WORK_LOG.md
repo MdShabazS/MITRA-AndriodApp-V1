@@ -4,6 +4,55 @@ This file records completed project work in a format that app, AI, and hardware 
 
 ## 2026-08-12
 
+### Product Streaming Architecture And Status Panels
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- Added a product-level Android/iOS/hardware streaming direction document.
+- Locked the backup-first rule before hardware firmware or stream protocol changes.
+- Added a left stream-health panel and right cloud-health panel to the MITRA live screen.
+- Added cloud telemetry counters for frames sent, ACKs, replies, timeout count, and latest reply metadata.
+
+Files changed:
+
+- `app/src/main/res/layout/activity_video.xml`
+- `app/src/main/java/com/unique/visionmate/VideoActivity.kt`
+- `app/src/main/java/com/unique/visionmate/BackgroundService.kt`
+- `app/src/main/java/com/unique/visionmate/CloudFrameResultStore.kt`
+- `docs/PRODUCT_STREAMING_ARCHITECTURE.md`
+- `README.md`
+- `WORKFLOW.md`
+- `docs/HARDWARE_INTEGRATION.md`
+- `AGENTS.md`
+- `docs/WORK_LOG.md`
+
+App impact:
+
+- The live feed remains centered while the unused side space shows stream and cloud health.
+- Cloud upload state is visible during phone tests without reading logcat first.
+
+Hardware impact:
+
+- No hardware code changed.
+- Hardware changes now require backup and stream-profile documentation before firmware edits.
+
+AI/model impact:
+
+- No model behavior changed.
+- Stream/cloud health is easier to correlate with local and cloud inference behavior.
+
+Validation:
+
+- `:engine:testDebugUnitTest`, `:app:testDebugUnitTest`, `:app:lintDebug`, and `:app:assembleDebug` passed.
+- Debug APK installed successfully on Poco `25028PC03I`.
+
+Follow-ups:
+
+- Rahil must document current hardware stream settings before protocol or encoder changes.
+- Evaluate stabilized RTSP/H.264 against a WebRTC/H.264 prototype before choosing the future iOS-compatible product stream.
+
 ### Poco Sampled-But-Frozen Video Watchdog
 
 Owner: MdShabazS / Codex

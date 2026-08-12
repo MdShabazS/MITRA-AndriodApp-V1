@@ -14,6 +14,7 @@ This branch contains the tested OPPO-working backup version from `BACKUPS/oppo_w
 - Hardware video is read from `rtsp://10.42.0.1:8554/stream`.
 - RTSP uses the tested hardware stream path and fallback behavior from the OPPO-working backup.
 - RTSP playback uses low LibVLC cache settings, adaptive stale-frame refresh, and a visual-freeze watchdog for the case where sampled frames keep increasing but the decoded image is stuck.
+- The live MITRA screen keeps stream health on the left and cloud send/reply health on the right so testing does not depend only on logcat.
 - If hardware is unavailable, the app falls back to the phone back camera.
 - Frames are sampled for local inference and cloud upload; the live RTSP display can still decode around 30 FPS.
 - Local TFLite models run hazard features; navigation guidance is integrated in the Android app flow.
@@ -48,6 +49,7 @@ This project is maintained by a team. Every meaningful change must update Markdo
 - `docs/DOCUMENTATION_STANDARDS.md`: required documentation process for future work.
 - `docs/WORK_LOG.md`: chronological record of completed tasks.
 - `docs/HARDWARE_INTEGRATION.md`: hardware-facing WiFi, RTSP, camera, and AI pipeline expectations.
+- `docs/PRODUCT_STREAMING_ARCHITECTURE.md`: product-level Android, future iOS, and hardware streaming direction.
 - `docs/HARDWARE_AS_BUILT_CAPTURE_TEMPLATE.md`: template Rahil should fill with real hardware/code/stream details.
 - `docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md`: Rahil's firmware tuning and fallback reset/rebuild contract if the current hardware stream stack cannot meet product gates.
 - `docs/RAHIL_CODEX_START_GUIDE.md`: exact prompt and step-by-step Codex startup guide for Rahil.
