@@ -4,6 +4,45 @@ This file records completed project work in a format that app, AI, and hardware 
 
 ## 2026-08-12
 
+### Poco Mac-Say Voice Command Test
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- Installed the latest debug APK on Poco after the WebSocket frame-send guard.
+- Used Mac text-to-speech to speak `mitra open youtube`, `mitra open whatsapp`, and `mitra start mitra`.
+- Saved logcat, connectivity, and WiFi evidence.
+- Found the test did not reach command routing because SpeechRecognizer failed first with `STT error code: 2` and Google `GRPC_ERROR code 14`.
+- Confirmed no `frame_sent` logs appeared during this test state.
+
+Files changed:
+
+- `docs/test-evidence/2026-08-12-poco-voice-command-mac-say/MITRA_POCO_VOICE_COMMAND_MAC_SAY_REPORT.md`
+- `docs/WORK_LOG.md`
+
+App impact:
+
+- No code changed in this entry.
+- Latest APK was installed on Poco for testing.
+
+Hardware impact:
+
+- None.
+
+AI/model impact:
+
+- None.
+
+Validation:
+
+- Voice command test blocked by SpeechRecognizer/network state.
+- Connectivity dump showed no active default network after the run.
+
+Follow-ups:
+
+- Retest voice commands with an active default internet network, or add an offline/local command recognizer path for product reliability while connected to `MITRA_DEVICE`.
+
 ### Rahil Collaborator Access Recorded
 
 Owner: MdShabazS / Codex
