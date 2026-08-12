@@ -13,7 +13,7 @@ This branch contains the tested OPPO-working backup version from `BACKUPS/oppo_w
 - If the phone is already connected to MITRA WiFi, it skips re-scanning and starts the stream path.
 - Hardware video is read from `rtsp://10.42.0.1:8554/stream`.
 - RTSP uses the tested hardware stream path and fallback behavior from the OPPO-working backup.
-- RTSP playback uses low LibVLC cache settings and a 5-minute live-session refresh to reduce long-run buffer buildup.
+- RTSP playback uses low LibVLC cache settings and a guarded 5-minute live-session refresh to reduce long-run buffer buildup without repeated reconnect storms.
 - If hardware is unavailable, the app falls back to the phone back camera.
 - Frames are sampled for local inference and cloud upload; the live RTSP display can still decode around 30 FPS.
 - Local TFLite models run hazard features; navigation guidance is integrated in the Android app flow.
@@ -21,7 +21,7 @@ This branch contains the tested OPPO-working backup version from `BACKUPS/oppo_w
 
 ## Rahil Hardware Stream Work
 
-Latest decision after the 2026-08-11 15-minute Android retest: do not reset or recode the hardware from scratch first. The earlier 8-second app delay did not reproduce in that later retest, and an Android RTSP reconnect-loop bug was found and fixed after the test.
+Latest decision after the 2026-08-12 Poco retest: do not reset or recode the hardware from scratch first. The earlier 8-second app delay did not reproduce in the later OPPO retest, and the Poco test reproduced an Android RTSP live-refresh reconnect storm that was fixed in the app.
 
 Rahil's current priority is to document and preserve the working hardware implementation, then tune only what new evidence proves is needed:
 
@@ -29,7 +29,7 @@ Rahil's current priority is to document and preserve the working hardware implem
 - Back up and upload the current hardware source code, startup scripts, configs, and dependency/version list.
 - Add timestamp/frame-counter proof so the team can measure real camera-to-phone latency.
 - Confirm codec/profile/resolution/FPS/bitrate/GOP/B-frame/SPS/PPS and RTSP transport behavior.
-- Verify Mac and Android 15-minute stream tests after the Android reconnect-loop fix is installed.
+- Verify Mac and Android 15-minute stream tests after the Android reconnect-loop fix is installed. Poco focused retest evidence is in `docs/test-evidence/2026-08-12-poco-live-refresh-fix-retest/MITRA_POCO_RTSP_RETEST_REPORT.md`.
 - Tune hardware only if delay growth, corruption, reconnect failure, or timestamp problems are reproduced.
 
 Product target: the hardware must provide a documented, reproducible, live navigation camera feed, not only an RTSP stream that opens. Rahil should start with `docs/RAHIL_CODEX_START_GUIDE.md` and use `docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md` only if targeted tuning cannot meet the product gates.

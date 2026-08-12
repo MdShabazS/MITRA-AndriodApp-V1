@@ -2,6 +2,60 @@
 
 This file records completed project work in a format that app, AI, and hardware teammates can scan quickly.
 
+## 2026-08-12
+
+### Poco Hardware RTSP Retest And Live-Refresh Fix
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- Ran a fresh-install MITRA hardware test on Poco `25028PC03I` / Android 15 with cloud skipped.
+- Captured ADB/logcat, screenshots, WiFi, battery, and activity evidence under `docs/test-evidence/2026-08-12-poco-hardware-15min-retest/`.
+- Reproduced a product-level RTSP bug: pre-fix build scheduled `live-refresh` reconnects 693 times after the 5-minute refresh point.
+- Fixed `RtspFrameSource` so a scheduled live-refresh cannot be cleared before the restart actually starts.
+- Installed the patched APK and ran a 7-minute focused Poco retest across the 5-minute threshold; fixed build scheduled exactly one live-refresh and stayed live with about 2.2 sampled FPS.
+
+Files changed:
+
+- `app/src/main/java/com/unique/visionmate/RtspFrameSource.kt`
+- `README.md`
+- `WORKFLOW.md`
+- `docs/HARDWARE_INTEGRATION.md`
+- `docs/HARDWARE_STREAM_CONTRACT_AND_QA.md`
+- `docs/ANDROID_DEVICE_COMPATIBILITY_PLAN.md`
+- `docs/test-evidence/2026-08-12-poco-live-refresh-fix-retest/MITRA_POCO_RTSP_RETEST_REPORT.md`
+- `docs/WORK_LOG.md`
+
+App impact:
+
+- RTSP live-session refresh now executes as one guarded restart instead of being cancelled by stale playback/frame callbacks and rescheduled every watchdog tick.
+- Poco accessibility setting was confirmed ON during the retest, but the setup flow can still open accessibility settings and remains in compatibility QA.
+
+Hardware impact:
+
+- This Poco result does not justify hardware reset or full recode.
+- Rahil should still document/back up current hardware, confirm stream format/settings, and add timestamp/frame-counter proof.
+
+AI/model impact:
+
+- No model thresholds or hazard logic changed.
+- Local alert accuracy still needs controlled validation with real MITRA hardware scenes.
+
+Validation:
+
+- Fresh Poco install and hardware RTSP run captured.
+- Patched debug APK built and installed on Poco.
+- Focused 7-minute Poco retest passed across the 5-minute RTSP refresh threshold.
+- `:engine:testDebugUnitTest :app:testDebugUnitTest` passed.
+
+Follow-ups:
+
+- Repeat a full 15-minute Poco run on the patched APK.
+- Run the full wake-word/command/background matrix on Poco.
+- Keep cloud/WebSocket testing pending until the cloud pass starts.
+- Continue cross-OEM matrix on Samsung, Vivo/iQOO, Pixel/AOSP-like, and OnePlus.
+
 ## 2026-08-11
 
 ### Rahil Hardware Handoff Updated After No-8-Second-Delay Retest

@@ -31,7 +31,7 @@ This does not mean every Android device in the market can be guaranteed without 
 |---|---:|---|
 | OPPO / ColorOS | Android 15/16 class device | Already tested partially; continue as reference device |
 | Samsung / One UI | Android 13+ | Pending |
-| Xiaomi/Redmi/POCO / HyperOS or MIUI | Android 12+ | Pending |
+| Xiaomi/Redmi/POCO / HyperOS or MIUI | Android 12+ | Poco Android 15 partial pass after RTSP fix; full matrix still pending |
 | Vivo/iQOO / Funtouch OS | Android 12+ | Pending |
 | Pixel / AOSP-like | Android 13+ | Pending |
 | OnePlus / OxygenOS | Android 13+ | Pending |
@@ -76,8 +76,9 @@ Do not claim "runs on every phone" until:
 
 ## Current Status
 
-As of 2026-08-08:
+As of 2026-08-12:
 
 - OPPO CPH2729 / Android SDK 36 has passing evidence for hardware RTSP, local inference, PixelCopy frame capture, and local navigation TTS.
-- Cross-OEM compatibility is pending.
+- Poco `25028PC03I` / Android 15 reproduced an app-side RTSP live-refresh reconnect storm on the pre-fix build, then passed a 7-minute focused patched retest across the 5-minute refresh threshold. See `docs/test-evidence/2026-08-12-poco-live-refresh-fix-retest/MITRA_POCO_RTSP_RETEST_REPORT.md`.
+- Cross-OEM compatibility is still pending for Samsung, Vivo/iQOO, Pixel/AOSP-like, and OnePlus.
 - Cloud WebSocket route is still pending while connected to `MITRA_DEVICE`.

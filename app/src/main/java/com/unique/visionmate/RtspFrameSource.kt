@@ -66,7 +66,7 @@ class RtspFrameSource(
 
         const val PREF_DUMP_FRAMES = "offload.debug.dumpFrames"
         const val PREF_LAST_GOOD_TRANSPORT = "rtsp.last_good_transport"
-        const val BUILD_TAG = "rtsp-libvlc-low-latency-refresh-guard"
+        const val BUILD_TAG = "rtsp-libvlc-live-refresh-pending-guard"
     }
 
     private val mainHandler = Handler(context.mainLooper)
@@ -84,6 +84,8 @@ class RtspFrameSource(
     @Volatile private var running = false
     @Volatile private var publishIntervalMs = BASE_PUBLISH_INTERVAL_MS
     @Volatile private var reconnectScheduled = false
+    @Volatile private var reconnectRestartStarted = false
+    @Volatile private var pendingReconnectReason: String? = null
     @Volatile private var capturesOk = 0L
     @Volatile private var lastFrameMs = 0L
     @Volatile private var lastVideoOutputMs = 0L
@@ -210,7 +212,7 @@ class RtspFrameSource(
                 }
                 MediaPlayer.Event.Buffering -> callbacks.onStatus("buffering:${transportMode.statusLabel}")
                 MediaPlayer.Event.Playing -> {
-                    clearReconnectState()
+                    clearReconnectStateAfterPlayback()
                     callbacks.onStatus("live:${transportMode.statusLabel}")
                     Log.i(TAG, "LibVLC playing transport=${transportMode.statusLabel}")
                 }
@@ -226,7 +228,7 @@ class RtspFrameSource(
                 }
                 MediaPlayer.Event.Vout -> {
                     lastVideoOutputMs = SystemClock.elapsedRealtime()
-                    if (capturesOk == 0L && reconnectScheduled) {
+                    if (capturesOk == 0L && reconnectScheduled && reconnectRestartStarted) {
                         clearReconnectState()
                         Log.i(TAG, "LibVLC vout arrived; keeping transport=${transportMode.statusLabel} for first frame")
                     }
@@ -337,7 +339,7 @@ class RtspFrameSource(
                 Log.i(TAG, "first frame captured ${dest.width}x${dest.height} (PixelCopy)")
                 rememberLastGoodTransport()
             }
-            clearReconnectState()
+            clearReconnectStateAfterCapture()
             val out = dest.copy(Bitmap.Config.ARGB_8888, false)
             VideoFrameCache.publish(out, now)
             maybeDump(out, now)
@@ -399,6 +401,8 @@ class RtspFrameSource(
     private fun scheduleReconnect(reason: String) {
         if (!running || reconnectScheduled) return
         reconnectScheduled = true
+        reconnectRestartStarted = false
+        pendingReconnectReason = reason
         VideoFrameCache.clear()
         if (capturesOk == 0L && (reason == "stall" || reason == "error" || reason == "ended")) {
             transportMode = when (transportMode) {
@@ -414,6 +418,7 @@ class RtspFrameSource(
 
     private val reconnectRunnable = Runnable {
         if (running) {
+            reconnectRestartStarted = true
             lastFrameMs = SystemClock.elapsedRealtime()
             startPlayerWhenSurfaceReady("reconnect", forceRestart = true)
             mainHandler.removeCallbacks(reconnectAttemptTimeoutRunnable)
@@ -432,8 +437,22 @@ class RtspFrameSource(
 
     private fun clearReconnectState() {
         reconnectScheduled = false
+        reconnectRestartStarted = false
+        pendingReconnectReason = null
         mainHandler.removeCallbacks(reconnectRunnable)
         mainHandler.removeCallbacks(reconnectAttemptTimeoutRunnable)
+    }
+
+    private fun clearReconnectStateAfterPlayback() {
+        if (!reconnectScheduled || reconnectRestartStarted) {
+            clearReconnectState()
+        }
+    }
+
+    private fun clearReconnectStateAfterCapture() {
+        if (!reconnectScheduled || reconnectRestartStarted || pendingReconnectReason != "live-refresh") {
+            clearReconnectState()
+        }
     }
 
     private val watchdog = object : Runnable {

@@ -24,6 +24,13 @@ Thumbs.db
 *.swp
 LOGS/
 
+# Generated device-test evidence payloads; keep Markdown reports tracked.
+docs/test-evidence/**/*.png
+docs/test-evidence/**/*.jpg
+docs/test-evidence/**/*.jpeg
+docs/test-evidence/**/*.txt
+docs/test-evidence/**/*.log
+
 # Python virtual environment
 .venv/
 

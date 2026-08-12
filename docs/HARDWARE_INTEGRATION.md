@@ -35,7 +35,7 @@ Current assumptions:
 - First app transport attempt: RTSP over TCP
 - Fallback transport: LibVLC automatic/UDP mode
 - Current Android LibVLC cache target: 60 ms for network/live/RTSP cache
-- Long-run mitigation: Android refreshes the live RTSP player after 5 minutes to clear possible decoder/RTSP backlog. The 2026-08-11 retest found a repeated-refresh loop; Android now keeps reconnect state active until LibVLC reaches `Playing`, a fresh frame arrives, or a bounded timeout retries.
+- Long-run mitigation: Android refreshes the live RTSP player after 5 minutes to clear possible decoder/RTSP backlog. The 2026-08-12 Poco retest reproduced a repeated live-refresh loop on the pre-fix build (`693` refresh schedules). Android now keeps a pending live-refresh reconnect active until the restart actually begins, then clears reconnect state only from the restarted playback/frame path or bounded retry timeout.
 - App decoded sample format: `ARGB_8888` bitmap copied from the displayed `SurfaceView`
 - App sample cadence for the decoded frame cache: about 2.2 FPS by default
 - Cloud upload format: JPEG, quality 70, MessagePack WebSocket payload
@@ -46,7 +46,7 @@ Current assumptions:
 
 For the full hardware stream contract, Android decode path, cloud payload shape, and QA checklist, see `docs/HARDWARE_STREAM_CONTRACT_AND_QA.md`.
 
-Current 2026-08-11 decision: the later 15-minute Android retest did not reproduce the earlier 8-second delay, so Rahil should not reset or recode the hardware from scratch first. Rahil should first complete `docs/HARDWARE_AS_BUILT_CAPTURE_TEMPLATE.md`, back up/upload the current hardware code/config, add timestamp/frame-counter proof if missing, and tune only if new evidence points to hardware.
+Current 2026-08-12 decision: the later OPPO retest did not reproduce the earlier 8-second delay, and the Poco retest proved one app-side live-refresh reconnect storm that was fixed in Android. Rahil should not reset or recode the hardware from scratch first. Rahil should first complete `docs/HARDWARE_AS_BUILT_CAPTURE_TEMPLATE.md`, back up/upload the current hardware code/config, add timestamp/frame-counter proof if missing, and tune only if new evidence points to hardware.
 
 If Rahil later decides the current firmware/RTSP stack must be reset or rebuilt, follow `docs/HARDWARE_FIRMWARE_REBUILD_SPEC.md` before changing the hardware contract.
 
