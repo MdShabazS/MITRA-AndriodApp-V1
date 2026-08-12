@@ -51,7 +51,7 @@ feature runs, not one cached or stale frame.
 
 In hardware mode, `RtspFrameSource` opens `rtsp://10.42.0.1:8554/stream` with LibVLC and samples the visible `SurfaceView` through PixelCopy. The app remembers the last transport that produced a frame and tries it first next time.
 
-After about 5 minutes of a live session, Android performs one guarded player refresh to clear possible decoder or RTSP backlog. The refresh must execute before reconnect state can be cleared, preventing the repeated 800 ms live-refresh loop reproduced on Poco before the 2026-08-12 fix.
+After about 5 minutes of a live session, Android only refreshes the player if the sampled frame path is already stale. Healthy streams are left alone, preventing a timer-based interruption. If a refresh is needed, reconnect state must remain pending until the restart starts, preventing the repeated 800 ms live-refresh loop reproduced on Poco before the 2026-08-12 fix.
 
 ## 4. Voice commands (anytime, via BackgroundService)
 - **Foreground (home screen):** speak commands directly.
@@ -60,6 +60,7 @@ After about 5 minutes of a live session, Android performs one guarded player ref
   ("tu"→"to", "myntra"→"mitra") are normalized first; contact names use fuzzy matching.
 - **Launching** (open/call/send/navigate) is routed through the **accessibility service**, so it works
   from the background where a normal service is blocked.
+- Speech recognizer hard errors use backoff, because some phones do not have the requested offline language pack or lose recognizer service while connected to MITRA WiFi without internet.
 - See `COMMANDS.md` for the full command list.
 
 ## 5. Messages, calls, coexistence

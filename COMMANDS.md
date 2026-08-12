@@ -56,3 +56,4 @@ Accepted wake-word forms are **mitra**, **mi tra**, and **mithra**. Near-miss wo
 - "read text" / "take picture" need an active camera or RTSP frame.
 - During a phone call, voice pauses and auto-resumes ~1.5s after the call ends.
 - Message reading needs **Notification access**; background app-opening needs the **Accessibility** service on.
+- If Android SpeechRecognizer fails because the phone has no language pack or no internet route, MITRA backs off instead of rapidly restarting the mic.

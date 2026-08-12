@@ -4,6 +4,59 @@ This file records completed project work in a format that app, AI, and hardware 
 
 ## 2026-08-12
 
+### Poco Mic Backoff And Adaptive RTSP Refresh
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- Reviewed user-reported Poco issues: mic on/off sound, commands/password not being heard, occasional stuck feed, and slow refresh.
+- Found Poco SpeechRecognizer hard errors in logs; the app was retrying too quickly, which caused audible mic enable/disable loops.
+- Removed forced offline recognition and added increasing backoff for service and setup recognizers.
+- Fixed pause behavior so setup/password listening can pause the background service recognizer even while MITRA runtime is active.
+- Changed RTSP live refresh from timer-only to adaptive: healthy sampled frames are not interrupted at the 5-minute point.
+
+Files changed:
+
+- `app/src/main/java/com/unique/visionmate/BackgroundService.kt`
+- `app/src/main/java/com/unique/visionmate/MainActivity.kt`
+- `app/src/main/java/com/unique/visionmate/RtspFrameSource.kt`
+- `README.md`
+- `WORKFLOW.md`
+- `COMMANDS.md`
+- `docs/HARDWARE_INTEGRATION.md`
+- `docs/HARDWARE_STREAM_CONTRACT_AND_QA.md`
+- `docs/ANDROID_DEVICE_COMPATIBILITY_PLAN.md`
+- `docs/test-evidence/2026-08-12-poco-mic-refresh-fix/MITRA_POCO_MIC_AND_REFRESH_FIX_REPORT.md`
+- `docs/WORK_LOG.md`
+
+App impact:
+
+- Recognizer failures now back off instead of rapidly restarting the phone mic.
+- Setup/password listening no longer competes with the service recognizer when the runtime is active.
+- Healthy RTSP streams are no longer interrupted by a forced 5-minute refresh.
+
+Hardware impact:
+
+- No hardware contract changed.
+- Exact delay still needs Rahil's timestamp/frame-counter proof before assigning latency to hardware.
+
+AI/model impact:
+
+- No model or hazard thresholds changed.
+
+Validation:
+
+- Patched APK built and installed on Poco.
+- 60-second main-screen mic test: no rapid mic retry loop; only two backed-off recognizer retries.
+- 6.5-minute Poco stream test: live at end, about 2.2 sampled FPS, latest frame about 226 ms, zero live-refresh/stall/PixCopy failures.
+
+Follow-ups:
+
+- Run full 15-minute Poco stream test on this adaptive-refresh build.
+- Run real human wake-word/password/background command matrix on Poco.
+- Cloud/WebSocket remains pending.
+
 ### Poco Hardware RTSP Retest And Live-Refresh Fix
 
 Owner: MdShabazS / Codex

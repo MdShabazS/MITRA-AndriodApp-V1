@@ -54,6 +54,7 @@ class RtspFrameSource(
         private const val FIRST_CAPTURE_DELAY_MS = 250L
         private const val LIVE_STALL_MS = 4_000L
         private const val LIVE_SESSION_REFRESH_MS = 5 * 60 * 1_000L
+        private const val LIVE_REFRESH_MIN_FRAME_AGE_MS = 1_500L
         private const val FIRST_FRAME_STALL_TCP_MS = 3_200L
         private const val FIRST_FRAME_STALL_UDP_MS = 2_800L
         private const val FIRST_FRAME_AFTER_VOUT_GRACE_MS = 4_000L
@@ -66,7 +67,7 @@ class RtspFrameSource(
 
         const val PREF_DUMP_FRAMES = "offload.debug.dumpFrames"
         const val PREF_LAST_GOOD_TRANSPORT = "rtsp.last_good_transport"
-        const val BUILD_TAG = "rtsp-libvlc-live-refresh-pending-guard"
+        const val BUILD_TAG = "rtsp-adaptive-refresh-stt-backoff"
     }
 
     private val mainHandler = Handler(context.mainLooper)
@@ -483,9 +484,10 @@ class RtspFrameSource(
                 capturesOk > 0L &&
                 playerStartedMs > 0L &&
                 SystemClock.elapsedRealtime() - playerStartedMs > LIVE_SESSION_REFRESH_MS &&
+                age > LIVE_REFRESH_MIN_FRAME_AGE_MS &&
                 !reconnectScheduled
             ) {
-                Log.w(TAG, "watchdog: refreshing live RTSP session to clear possible decoder/RTSP backlog")
+                Log.w(TAG, "watchdog: refreshing stale live RTSP session age=${age}ms")
                 scheduleReconnect("live-refresh")
             }
             mainHandler.postDelayed(this, WATCHDOG_INTERVAL_MS)

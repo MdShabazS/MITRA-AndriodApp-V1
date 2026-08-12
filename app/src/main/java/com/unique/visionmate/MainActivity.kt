@@ -63,6 +63,8 @@ class MainActivity : AppCompatActivity() {
         private const val WIFI_SCAN_RESULTS_DELAY_MS = 1_200L
         private const val WIFI_SCAN_RETRY_DELAY_MS = 750L
         private const val WIFI_CONNECT_TIMEOUT_MS = 10_000
+        private const val STT_LANGUAGE_PACK_ERROR_CODE = 12
+        private const val STT_MAX_BACKOFF_MS = 60_000L
     }
 
     // TTS
@@ -74,6 +76,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var speechRecognizer: SpeechRecognizer
     private lateinit var speechIntent: Intent
     private var isListening = false
+    private var sttHardErrorCount = 0
+    private var sttBackoffUntilMs = 0L
+    private var sttRetryGeneration = 0
 
     // Managers
     private lateinit var wifiManager: WifiManager
@@ -1047,12 +1052,13 @@ class MainActivity : AppCompatActivity() {
         speechIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.US)
-            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
+            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
         }
 
         speechRecognizer.setRecognitionListener(object : RecognitionListener {
             override fun onResults(results: Bundle) {
                 isListening = false
+                resetSpeechErrorBackoff()
                 val text = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     ?.getOrNull(0)?.lowercase()?.trim() ?: ""
                 handleVoiceInput(text)
@@ -1060,9 +1066,8 @@ class MainActivity : AppCompatActivity() {
 
             override fun onError(error: Int) {
                 isListening = false
-                // Retry if still waiting for input
                 if (waitingForPassword || waitingForYes) {
-                    Handler(Looper.getMainLooper()).postDelayed({ startListening() }, 800)
+                    scheduleSetupSpeechRetry(error)
                 }
             }
 
@@ -1174,18 +1179,70 @@ class MainActivity : AppCompatActivity() {
 
     private fun startListening() {
         if (isListening) return
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now < sttBackoffUntilMs) {
+            scheduleSetupListeningRetry(sttBackoffUntilMs - now)
+            return
+        }
         isListening = true
         Handler(Looper.getMainLooper()).postDelayed({
             if (isListening) {
-                speechRecognizer.startListening(speechIntent)
+                try {
+                    speechRecognizer.startListening(speechIntent)
+                } catch (e: Exception) {
+                    isListening = false
+                    Log.w("MITRA_SETUP_STT", "setup recognizer start failed: ${e.message}")
+                    if (waitingForPassword || waitingForYes) scheduleSetupSpeechRetry(STT_LANGUAGE_PACK_ERROR_CODE)
+                }
             }
         }, 300)
     }
 
     private fun stopListening() {
+        sttRetryGeneration++
         if (!isListening) return
         try { speechRecognizer.stopListening() } catch (_: Exception) { }
         isListening = false
+    }
+
+    private fun resetSpeechErrorBackoff() {
+        sttHardErrorCount = 0
+        sttBackoffUntilMs = 0L
+    }
+
+    private fun scheduleSetupSpeechRetry(error: Int) {
+        val isHardError = error == STT_LANGUAGE_PACK_ERROR_CODE ||
+            error == SpeechRecognizer.ERROR_CLIENT ||
+            error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY ||
+            error == SpeechRecognizer.ERROR_NETWORK ||
+            error == SpeechRecognizer.ERROR_NETWORK_TIMEOUT ||
+            error == SpeechRecognizer.ERROR_SERVER
+        sttHardErrorCount = if (isHardError) (sttHardErrorCount + 1).coerceAtMost(8) else 0
+        val delayMs = if (isHardError) {
+            when (sttHardErrorCount) {
+                1 -> 1_500L
+                2 -> 5_000L
+                3 -> 15_000L
+                4 -> 30_000L
+                else -> STT_MAX_BACKOFF_MS
+            }
+        } else {
+            1_500L
+        }
+        sttBackoffUntilMs = android.os.SystemClock.elapsedRealtime() + delayMs
+        Log.w(
+            "MITRA_SETUP_STT",
+            "setup recognizer error=$error; retrying in ${delayMs}ms (hardErrors=$sttHardErrorCount)"
+        )
+        scheduleSetupListeningRetry(delayMs)
+    }
+
+    private fun scheduleSetupListeningRetry(delayMs: Long) {
+        val generation = ++sttRetryGeneration
+        Handler(Looper.getMainLooper()).postDelayed({
+            if (generation != sttRetryGeneration || !(waitingForPassword || waitingForYes)) return@postDelayed
+            startListening()
+        }, delayMs)
     }
 
     private fun launchVideoActivity() {

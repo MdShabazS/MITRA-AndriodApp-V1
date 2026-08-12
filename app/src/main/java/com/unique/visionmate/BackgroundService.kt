@@ -26,6 +26,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.SystemClock
 import android.provider.ContactsContract
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
@@ -84,6 +85,8 @@ class BackgroundService : Service() {
         private const val STREAM_CAPTURE_HEIGHT = 360
         private const val CLOUD_FRAME_MAX_AGE_MS = 3_000L
         private const val RESTART_REQUEST_CODE = 3021
+        private const val STT_LANGUAGE_PACK_ERROR_CODE = 12
+        private const val STT_MAX_BACKOFF_MS = 60_000L
 
         @Volatile
         private var heldWifiNetwork: Network? = null
@@ -230,6 +233,9 @@ class BackgroundService : Service() {
         }
     }
     private var noMatchRetryCount = 0
+    private var sttHardErrorCount = 0
+    private var sttBackoffUntilMs = 0L
+    private var sttRetryGeneration = 0
     private var isServiceRunning = false
     private var suppressRuntimeSpeech = false
 
@@ -360,6 +366,7 @@ class BackgroundService : Service() {
                 directCommandMode = true
                 assistantActive = true
                 waitingForFollowUpCommand = true
+                resetSpeechErrorBackoff()
                 if (ttsReady) startListening()
                 return START_STICKY
             }
@@ -370,6 +377,7 @@ class BackgroundService : Service() {
                 pausedByActivity = false
                 suppressRuntimeSpeech = false
                 sendStreamingStatus("MITRA app active")
+                resetSpeechErrorBackoff()
                 if (ttsReady) startListening()
                 return START_STICKY
             }
@@ -382,6 +390,7 @@ class BackgroundService : Service() {
                     cancelSelfRestart()
                     pausedByActivity = false
                     sendStreamingStatus("MITRA app recovered after restart")
+                    resetSpeechErrorBackoff()
                     if (ttsReady) startListening()
                     startFrameStreaming()
                 }
@@ -405,7 +414,6 @@ class BackgroundService : Service() {
             ACTION_PAUSE_LISTENING -> {
                 directCommandMode = false
                 assistantActive = false
-                if (MitraRuntime.isActive(this)) return START_STICKY
                 pausedByActivity = true
                 stopListening()
                 return START_STICKY
@@ -415,6 +423,7 @@ class BackgroundService : Service() {
                 // random background speech is not treated as a command.
                 directCommandMode = false
                 pausedByActivity = false
+                resetSpeechErrorBackoff()
                 if (ttsReady) startListening()
                 return START_STICKY
             }
@@ -909,13 +918,14 @@ class BackgroundService : Service() {
 
         speechIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            // Indian English improves recognition of Indian accents and names.
+            // Indian English improves recognition of Indian accents and names. Do not force offline
+            // recognition: several Poco/HyperOS builds do not have the en-IN offline pack installed.
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-IN")
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "en-IN")
             putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, "en-IN")
             // Return several guesses so we can pick the one that best matches a command.
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
-            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
+            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
             @Suppress("DEPRECATION")
             putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 5000L)
             @Suppress("DEPRECATION")
@@ -926,6 +936,7 @@ class BackgroundService : Service() {
             override fun onResults(results: Bundle) {
                 isListening = false
                 noMatchRetryCount = 0
+                resetSpeechErrorBackoff()
                 val candidates = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     ?: arrayListOf()
                 val text = pickBestCandidate(candidates)
@@ -939,21 +950,21 @@ class BackgroundService : Service() {
                 Log.d("VOICE_BG", "STT error code: $error")
 
                 when (error) {
-                    // These errors mean the recognizer is broken — recreate it
+                    // These errors mean the recognizer is broken or busy. Back off so the hardware
+                    // mic does not audibly toggle on/off in a tight loop.
                     SpeechRecognizer.ERROR_RECOGNIZER_BUSY,
                     SpeechRecognizer.ERROR_CLIENT -> {
-                        Log.d("VOICE_BG", "Recreating SpeechRecognizer due to error $error")
-                        mainHandler.postDelayed({
-                            setupSpeechRecognizer()
-                            startListening()
-                        }, 1000)
+                        scheduleSpeechRetry(error, recreate = true)
+                    }
+                    STT_LANGUAGE_PACK_ERROR_CODE -> {
+                        scheduleSpeechRetry(error, recreate = false)
                     }
                     // No speech / silence — retry during command phase, else restart
                     SpeechRecognizer.ERROR_NO_MATCH,
                     SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> {
                         if (assistantActive && noMatchRetryCount < 2) {
                             noMatchRetryCount++
-                            mainHandler.postDelayed({ if (!resumeListeningAfterSpeech) startListening() }, 300)
+                            scheduleListeningRetry(if (waitingForFollowUpCommand) 900L else 1500L)
                         } else {
                             noMatchRetryCount = 0
                             if (assistantActive) {
@@ -963,23 +974,15 @@ class BackgroundService : Service() {
                             if (!resumeListeningAfterSpeech) restartListening()
                         }
                     }
-                    // Network / server errors — wait a bit longer before retry
+                    // Network / server errors — back off; the phone may be on MITRA_DEVICE with no internet.
                     SpeechRecognizer.ERROR_NETWORK,
                     SpeechRecognizer.ERROR_NETWORK_TIMEOUT,
                     SpeechRecognizer.ERROR_SERVER -> {
-                        mainHandler.postDelayed({
-                            if (!resumeListeningAfterSpeech) {
-                                isListening = false
-                                startListening()
-                            }
-                        }, 2000)
+                        scheduleSpeechRetry(error, recreate = false)
                     }
-                    // Any other error — recreate to be safe
+                    // Any other error — recreate with backoff to be safe.
                     else -> {
-                        mainHandler.postDelayed({
-                            setupSpeechRecognizer()
-                            startListening()
-                        }, 1500)
+                        scheduleSpeechRetry(error, recreate = true)
                     }
                 }
             }
@@ -992,6 +995,41 @@ class BackgroundService : Service() {
             override fun onPartialResults(partialResults: Bundle?) {}
             override fun onEvent(eventType: Int, params: Bundle?) {}
         })
+    }
+
+    private fun resetSpeechErrorBackoff() {
+        sttHardErrorCount = 0
+        sttBackoffUntilMs = 0L
+    }
+
+    private fun scheduleSpeechRetry(error: Int, recreate: Boolean) {
+        sttHardErrorCount = (sttHardErrorCount + 1).coerceAtMost(8)
+        val delayMs = when (sttHardErrorCount) {
+            1 -> 1_500L
+            2 -> 5_000L
+            3 -> 15_000L
+            4 -> 30_000L
+            else -> STT_MAX_BACKOFF_MS
+        }
+        sttBackoffUntilMs = SystemClock.elapsedRealtime() + delayMs
+        Log.w(
+            "VOICE_BG",
+            "Speech recognizer error=$error; retrying in ${delayMs}ms (hardErrors=$sttHardErrorCount)"
+        )
+        scheduleListeningRetry(delayMs, recreate)
+    }
+
+    private fun scheduleListeningRetry(delayMs: Long, recreate: Boolean = false) {
+        val generation = ++sttRetryGeneration
+        mainHandler.postDelayed({
+            if (generation != sttRetryGeneration || pausedByActivity || inCall || resumeListeningAfterSpeech) {
+                return@postDelayed
+            }
+            if (recreate) {
+                setupSpeechRecognizer()
+            }
+            startListening()
+        }, delayMs)
     }
 
     private fun handleSpeechResult(normalizedText: String) {
@@ -1039,6 +1077,15 @@ class BackgroundService : Service() {
 
     private fun startListening() {
         if (isListening || pausedByActivity || inCall) return
+        if (!::speechRecognizer.isInitialized) {
+            if (!SpeechRecognizer.isRecognitionAvailable(this)) return
+            setupSpeechRecognizer()
+        }
+        val now = SystemClock.elapsedRealtime()
+        if (now < sttBackoffUntilMs) {
+            scheduleListeningRetry(sttBackoffUntilMs - now)
+            return
+        }
         isListening = true
         mainHandler.postDelayed({
             if (isListening) {
@@ -1056,16 +1103,14 @@ class BackgroundService : Service() {
     }
 
     private fun stopListening() {
+        sttRetryGeneration++
         if (!isListening) return
         try { speechRecognizer.stopListening() } catch (_: Exception) {}
         isListening = false
     }
 
     private fun restartListening() {
-        mainHandler.postDelayed({
-            isListening = false
-            startListening()
-        }, if (waitingForFollowUpCommand) 100 else 150)
+        scheduleListeningRetry(if (waitingForFollowUpCommand) 600L else 900L)
     }
 
     private fun muteAudio() {

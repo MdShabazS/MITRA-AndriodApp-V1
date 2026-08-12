@@ -63,7 +63,7 @@ Each phone should run the same checklist:
 - Android WiFi APIs can hide SSID/scan results unless Location and Nearby WiFi permissions are granted.
 - Phones may route cloud traffic differently when bound to `MITRA_DEVICE`, which has no internet.
 - LibVLC/PixelCopy first-frame timing varies across phones and GPUs.
-- Android SpeechRecognizer behavior depends on installed Google speech services, language pack, microphone quality, and room noise.
+- Android SpeechRecognizer behavior depends on installed Google speech services, language pack, internet route, microphone quality, and room noise. The app must back off on recognizer hard errors so OEMs do not audibly toggle the mic in a retry loop.
 
 ## Release Gate
 
@@ -80,5 +80,6 @@ As of 2026-08-12:
 
 - OPPO CPH2729 / Android SDK 36 has passing evidence for hardware RTSP, local inference, PixelCopy frame capture, and local navigation TTS.
 - Poco `25028PC03I` / Android 15 reproduced an app-side RTSP live-refresh reconnect storm on the pre-fix build, then passed a 7-minute focused patched retest across the 5-minute refresh threshold. See `docs/test-evidence/2026-08-12-poco-live-refresh-fix-retest/MITRA_POCO_RTSP_RETEST_REPORT.md`.
+- Poco `25028PC03I` / Android 15 later reproduced SpeechRecognizer hard-error mic toggling. The app now uses recognizer backoff and adaptive RTSP refresh; 60-second main-screen mic test and 6.5-minute stream test passed in `docs/test-evidence/2026-08-12-poco-mic-refresh-fix/MITRA_POCO_MIC_AND_REFRESH_FIX_REPORT.md`.
 - Cross-OEM compatibility is still pending for Samsung, Vivo/iQOO, Pixel/AOSP-like, and OnePlus.
 - Cloud WebSocket route is still pending while connected to `MITRA_DEVICE`.

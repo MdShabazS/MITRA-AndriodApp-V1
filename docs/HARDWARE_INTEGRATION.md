@@ -35,7 +35,7 @@ Current assumptions:
 - First app transport attempt: RTSP over TCP
 - Fallback transport: LibVLC automatic/UDP mode
 - Current Android LibVLC cache target: 60 ms for network/live/RTSP cache
-- Long-run mitigation: Android refreshes the live RTSP player after 5 minutes to clear possible decoder/RTSP backlog. The 2026-08-12 Poco retest reproduced a repeated live-refresh loop on the pre-fix build (`693` refresh schedules). Android now keeps a pending live-refresh reconnect active until the restart actually begins, then clears reconnect state only from the restarted playback/frame path or bounded retry timeout.
+- Long-run mitigation: Android watches sampled frame freshness after 5 minutes and refreshes the live RTSP player only when the sampled frame path is stale. Healthy streams are not interrupted by a timer-only refresh. The 2026-08-12 Poco retest reproduced a repeated live-refresh loop on the earlier build (`693` refresh schedules); Android now keeps a pending live-refresh reconnect active until the restart actually begins, then clears reconnect state only from the restarted playback/frame path or bounded retry timeout.
 - App decoded sample format: `ARGB_8888` bitmap copied from the displayed `SurfaceView`
 - App sample cadence for the decoded frame cache: about 2.2 FPS by default
 - Cloud upload format: JPEG, quality 70, MessagePack WebSocket payload
