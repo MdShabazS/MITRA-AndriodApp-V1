@@ -953,6 +953,9 @@ class BackgroundService : Service() {
             "VOICE_BG",
             "SpeechRecognizer mode=$speechRecognizerMode locale=${created.languageTag} preferOffline=${created.preferOffline}"
         )
+        if (speechRecognizerMode != MitraSpeechRecognizerConfig.MODE_ON_DEVICE) {
+            maybeRequestOfflineSpeechModelDownload("runtime-internet-prepare")
+        }
 
         speechRecognizer.setRecognitionListener(object : RecognitionListener {
             override fun onResults(results: Bundle) {

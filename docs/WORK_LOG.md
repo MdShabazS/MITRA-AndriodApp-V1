@@ -38,6 +38,30 @@ Follow-ups:
 - After that, reconnect Poco to MITRA hardware WiFi and retest `mitra what is the time`, `mitra open youtube`, and `mitra start mitra`.
 - For release-grade equality on phones without Android offline recognizer support, add an embedded offline fixed-command recognizer.
 
+### Poco Internet Speech Preparation Retest
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- User connected Poco to validated WiFi internet.
+- Added proactive offline speech model preparation during setup/runtime recognizer creation when validated internet is present.
+- Installed the proactive build on Poco.
+- Verified Poco now recognizes speech while on internet instead of returning `ERROR_LANGUAGE_UNAVAILABLE`.
+
+Files changed:
+
+- `app/src/main/java/com/unique/visionmate/BackgroundService.kt`
+- `app/src/main/java/com/unique/visionmate/MainActivity.kt`
+- `docs/WORK_LOG.md`
+- `docs/test-evidence/2026-08-12-poco-offline-speech-fix/MITRA_POCO_OFFLINE_SPEECH_FIX_REPORT.md`
+
+Validation:
+
+- `:app:testDebugUnitTest`, `:app:lintDebug`, and `:app:assembleDebug` passed.
+- Logcat showed `Heard:` and `Command raw:` lines from Poco while connected to `Shabaz 5G`.
+- Controlled Mac command was masked by nearby room speech, so final offline-on-MITRA-WiFi retest remains pending.
+
 ### Offline-Preferred Voice Recognition For Poco / Cross-Phone Commands
 
 Owner: MdShabazS / Codex

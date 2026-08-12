@@ -101,11 +101,44 @@ W/VOICE_BG: offline speech model unavailable and no internet fallback; connect t
 
 This is the maximum fix possible while still depending on Android's system recognizer: the app can prepare/download the missing offline pack when internet exists, but it cannot manufacture that language model while the phone is already on a no-internet MITRA route.
 
+## 2026-08-12 Internet Preparation Retest
+
+User connected Poco to validated WiFi internet:
+
+```text
+Active default network: 105
+SSID: "Shabaz 5G"
+Capabilities: INTERNET&VALIDATED
+```
+
+Follow-up app change:
+
+- MITRA now proactively calls the Android speech model preparation path whenever setup/runtime recognizer starts on a validated internet network.
+- This removes the need to wait for the first offline failure before preparing the model.
+
+Observed result after installing the proactive build:
+
+```text
+I/MITRA_SETUP_STT: setup recognizer mode=default-offline-preferred locale=en-US preferOffline=true
+I/VOICE_BG: SpeechRecognizer mode=default-offline-preferred locale=en-US preferOffline=true
+D/VOICE_BG: Heard: internet ke facilities nahin rahti
+D/VOICE_BG: Command raw: internet ke facilities nahin rahti
+```
+
+The controlled Mac `mitra battery level` attempt was masked by nearby room speech, but the critical blocker changed: Poco was recognizing speech again while on internet instead of returning `ERROR_LANGUAGE_UNAVAILABLE`.
+
+Next validation:
+
+1. Keep the phone quiet and repeat `mitra battery level` while on internet.
+2. Reconnect Poco to MITRA hardware WiFi/no internet.
+3. Repeat `mitra battery level` and confirm the offline model now works without `ERROR_LANGUAGE_UNAVAILABLE`.
+
 Raw evidence files saved in this folder:
 
 ```text
 poco_offline_speech_fix_logcat.log
 poco_speech_recovery_logcat.log
+poco_internet_speech_prepare_logcat.log
 poco_getprop.txt
 poco_connectivity.txt
 ```
