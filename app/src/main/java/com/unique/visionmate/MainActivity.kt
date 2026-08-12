@@ -28,7 +28,6 @@ import android.provider.Settings
 import android.location.LocationManager
 import android.util.Log
 import android.speech.RecognitionListener
-import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
@@ -63,7 +62,10 @@ class MainActivity : AppCompatActivity() {
         private const val WIFI_SCAN_RESULTS_DELAY_MS = 1_200L
         private const val WIFI_SCAN_RETRY_DELAY_MS = 750L
         private const val WIFI_CONNECT_TIMEOUT_MS = 10_000
-        private const val STT_LANGUAGE_PACK_ERROR_CODE = 12
+        private const val STT_LANGUAGE_PACK_ERROR_CODE =
+            MitraSpeechRecognizerConfig.ERROR_LANGUAGE_NOT_SUPPORTED
+        private const val STT_LANGUAGE_UNAVAILABLE_ERROR_CODE =
+            MitraSpeechRecognizerConfig.ERROR_LANGUAGE_UNAVAILABLE
         private const val STT_MAX_BACKOFF_MS = 60_000L
     }
 
@@ -75,6 +77,8 @@ class MainActivity : AppCompatActivity() {
     // Speech recognizer
     private lateinit var speechRecognizer: SpeechRecognizer
     private lateinit var speechIntent: Intent
+    private var speechRecognizerMode = MitraSpeechRecognizerConfig.MODE_DEFAULT
+    private var forceDefaultSpeechRecognizer = false
     private var isListening = false
     private var sttHardErrorCount = 0
     private var sttBackoffUntilMs = 0L
@@ -1048,12 +1052,20 @@ class MainActivity : AppCompatActivity() {
     // ===== SPEECH RECOGNITION =====
 
     private fun setupSpeechRecognizer() {
-        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
-        speechIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.US)
-            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
-        }
+        try { speechRecognizer.destroy() } catch (_: Exception) {}
+
+        val created = MitraSpeechRecognizerConfig.create(
+            this,
+            forceDefaultSpeechRecognizer,
+            "MITRA_SETUP_STT"
+        )
+        speechRecognizer = created.recognizer
+        speechRecognizerMode = created.mode
+        speechIntent = MitraSpeechRecognizerConfig.commandIntent(maxResults = 3)
+        Log.i(
+            "MITRA_SETUP_STT",
+            "setup recognizer mode=$speechRecognizerMode locale=${created.languageTag} preferOffline=${created.preferOffline}"
+        )
 
         speechRecognizer.setRecognitionListener(object : RecognitionListener {
             override fun onResults(results: Bundle) {
@@ -1066,6 +1078,16 @@ class MainActivity : AppCompatActivity() {
 
             override fun onError(error: Int) {
                 isListening = false
+                if (
+                    speechRecognizerMode == MitraSpeechRecognizerConfig.MODE_ON_DEVICE &&
+                    MitraSpeechRecognizerConfig.shouldFallbackFromOnDevice(error)
+                ) {
+                    forceDefaultSpeechRecognizer = true
+                    Log.w(
+                        "MITRA_SETUP_STT",
+                        "on-device setup recognizer failed error=$error; falling back to default offline-preferred recognizer"
+                    )
+                }
                 if (waitingForPassword || waitingForYes) {
                     scheduleSetupSpeechRetry(error)
                 }
@@ -1212,6 +1234,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun scheduleSetupSpeechRetry(error: Int) {
         val isHardError = error == STT_LANGUAGE_PACK_ERROR_CODE ||
+            error == STT_LANGUAGE_UNAVAILABLE_ERROR_CODE ||
             error == SpeechRecognizer.ERROR_CLIENT ||
             error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY ||
             error == SpeechRecognizer.ERROR_NETWORK ||
@@ -1234,13 +1257,14 @@ class MainActivity : AppCompatActivity() {
             "MITRA_SETUP_STT",
             "setup recognizer error=$error; retrying in ${delayMs}ms (hardErrors=$sttHardErrorCount)"
         )
-        scheduleSetupListeningRetry(delayMs)
+        scheduleSetupListeningRetry(delayMs, recreate = isHardError)
     }
 
-    private fun scheduleSetupListeningRetry(delayMs: Long) {
+    private fun scheduleSetupListeningRetry(delayMs: Long, recreate: Boolean = false) {
         val generation = ++sttRetryGeneration
         Handler(Looper.getMainLooper()).postDelayed({
             if (generation != sttRetryGeneration || !(waitingForPassword || waitingForYes)) return@postDelayed
+            if (recreate) setupSpeechRecognizer()
             startListening()
         }, delayMs)
     }

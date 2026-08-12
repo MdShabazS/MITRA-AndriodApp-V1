@@ -36,11 +36,13 @@ GRPC_ERROR
 
 The previous app behavior retried quickly after those errors. On Poco/HyperOS, each retry enabled and disabled the physical mic path, causing the audible mic on/off sound.
 
-Two app problems were fixed:
+Two app problems were fixed in that build:
 
 - The app no longer forces offline SpeechRecognizer mode. Poco did not have the required offline language pack.
 - SpeechRecognizer hard errors now use increasing backoff instead of a tight retry loop.
 - `ACTION_PAUSE_LISTENING` now pauses the service recognizer even while MITRA runtime is active, so setup/password listening can own the mic.
+
+2026-08-12 follow-up: later command testing showed Poco still selected Google online recognition while connected to MITRA WiFi/no internet. That earlier "no forced offline" decision is superseded by the shared MITRA recognizer config, which now prefers Android on-device recognition and sends offline-preferred command intents with `en-US`.
 
 ### RTSP Refresh / Stuck Feed
 

@@ -19,7 +19,7 @@ MITRA should support Android phones that meet these requirements:
 | CPU/ABI | Standard Android phones supported by the app's native dependencies |
 | Camera fallback | Back camera available |
 | Hardware mode | WiFi can connect to `MITRA_DEVICE` and route `10.42.0.1:8554` |
-| Voice mode | Microphone permission granted and Android SpeechRecognizer available |
+| Voice mode | Microphone permission granted and Android on-device/offline SpeechRecognizer available for command mode |
 | Background controls | Accessibility service enabled |
 | Overlay/status behavior | Display-over-apps permission enabled where required |
 
@@ -53,7 +53,7 @@ Each phone should run the same checklist:
 | Local inference | Stream for at least 2 minutes | Engine attaches and emits local results without crash |
 | TTS guidance | Local navigation guidance | TTS speaks useful guidance and throttling prevents spam |
 | Camera fallback | Start without MITRA hardware | Phone camera fallback opens and avoids mic restart loop |
-| Voice commands | Wake word and simple commands | `mitra time`, `mitra battery`, `mitra go home` work in quiet room |
+| Voice commands | Wake word and simple commands on MITRA WiFi/no internet route | `mitra time`, `mitra battery`, `mitra go home` work in quiet room; logcat shows on-device/offline-preferred recognizer mode |
 | Background mode | Press Home while MITRA active | Foreground service stays alive; commands still listen when allowed |
 | Cloud route | Network route with cloud access | WebSocket connects and ACK/response path works |
 
@@ -64,7 +64,8 @@ Each phone should run the same checklist:
 - Android WiFi APIs can hide SSID/scan results unless Location and Nearby WiFi permissions are granted.
 - Phones may route cloud traffic differently when bound to `MITRA_DEVICE`, which has no internet.
 - LibVLC/PixelCopy first-frame timing varies across phones and GPUs.
-- Android SpeechRecognizer behavior depends on installed Google speech services, language pack, internet route, microphone quality, and room noise. The app must back off on recognizer hard errors so OEMs do not audibly toggle the mic in a retry loop.
+- Android SpeechRecognizer behavior depends on installed Google speech services, language pack, on-device recognition support, internet route, microphone quality, and room noise. The app now prefers Android's API 31+ on-device recognizer when available and uses offline-preferred command intents. The app must still back off on recognizer hard errors so OEMs do not audibly toggle the mic in a retry loop.
+- If a target phone exposes no reliable on-device/offline speech recognizer, product release should embed a small offline command recognizer/grammar instead of depending on OEM Google recognizer behavior.
 
 ## Release Gate
 
@@ -83,5 +84,6 @@ As of 2026-08-12:
 - Poco `25028PC03I` / Android 15 reproduced an app-side RTSP live-refresh reconnect storm on the pre-fix build, then passed a 7-minute focused patched retest across the 5-minute refresh threshold. See `docs/test-evidence/2026-08-12-poco-live-refresh-fix-retest/MITRA_POCO_RTSP_RETEST_REPORT.md`.
 - Poco `25028PC03I` / Android 15 later reproduced SpeechRecognizer hard-error mic toggling. The app now uses recognizer backoff and adaptive RTSP refresh; 60-second main-screen mic test and 6.5-minute stream test passed in `docs/test-evidence/2026-08-12-poco-mic-refresh-fix/MITRA_POCO_MIC_AND_REFRESH_FIX_REPORT.md`.
 - Poco user observation later found `Sampled` increasing while the visible video was stuck; Android now includes a visual-freeze watchdog. Physical validation of that exact freeze recovery is pending in `docs/test-evidence/2026-08-12-poco-visual-freeze-watchdog/MITRA_POCO_VISUAL_FREEZE_WATCHDOG_REPORT.md`.
+- Poco Mac-say command testing then showed Google online recognizer failure while the phone had no default internet network on MITRA WiFi. Runtime and setup recognizers now prefer Android on-device/offline mode with `en-US`, and log the selected mode for QA evidence. Retest evidence in `docs/test-evidence/2026-08-12-poco-offline-speech-fix/MITRA_POCO_OFFLINE_SPEECH_FIX_REPORT.md` confirms Poco still returns `ERROR_LANGUAGE_UNAVAILABLE`, so embedded offline fixed-command recognition is required for product-level equality across phones.
 - Cross-OEM compatibility is still pending for Samsung, Vivo/iQOO, Pixel/AOSP-like, and OnePlus.
 - Cloud WebSocket route is still pending while connected to `MITRA_DEVICE`.

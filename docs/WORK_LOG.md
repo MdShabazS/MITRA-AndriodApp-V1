@@ -4,6 +4,51 @@ This file records completed project work in a format that app, AI, and hardware 
 
 ## 2026-08-12
 
+### Offline-Preferred Voice Recognition For Poco / Cross-Phone Commands
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- Root cause: OPPO could keep working because it had an offline speech path, while Poco selected Google online recognition and failed on `MITRA_DEVICE` WiFi/no internet.
+- Added shared MITRA speech recognizer setup that prefers Android API 31+ on-device recognition when available.
+- Changed setup and runtime command recognizers to use offline-preferred `en-US` command intents and log the selected recognizer mode.
+- Removed the runtime use of language-preference extras that were not appropriate for `ACTION_RECOGNIZE_SPEECH`.
+
+Files changed:
+
+- `app/src/main/java/com/unique/visionmate/MitraSpeechRecognizerConfig.kt`
+- `app/src/main/java/com/unique/visionmate/BackgroundService.kt`
+- `app/src/main/java/com/unique/visionmate/MainActivity.kt`
+- `COMMANDS.md`
+- `docs/ANDROID_DEVICE_COMPATIBILITY_PLAN.md`
+- `docs/WORK_LOG.md`
+
+App impact:
+
+- Voice setup and background commands should behave more consistently across OPPO and Poco when connected to MITRA hardware WiFi.
+- If a phone has no usable on-device/offline recognizer, the app still backs off safely; embedded local command recognition remains the product-grade fallback.
+
+Hardware impact:
+
+- None.
+
+AI/model impact:
+
+- None.
+
+Validation:
+
+- `:app:testDebugUnitTest`, `:app:lintDebug`, and `:app:assembleDebug` passed.
+- Installed patched APK on Poco `25028PC03I`.
+- Logcat proved the patched app used `default-offline-preferred locale=en-US preferOffline=true`.
+- Poco still returned `STT error code: 13`, meaning the offline language is unavailable on that phone.
+- Evidence saved in `docs/test-evidence/2026-08-12-poco-offline-speech-fix/MITRA_POCO_OFFLINE_SPEECH_FIX_REPORT.md`.
+
+Follow-ups:
+
+- Add embedded offline fixed-command recognition for product-level cross-phone reliability.
+
 ### Poco Mac-Say Voice Command Test
 
 Owner: MdShabazS / Codex

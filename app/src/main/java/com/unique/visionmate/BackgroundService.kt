@@ -29,7 +29,6 @@ import android.os.Looper
 import android.os.SystemClock
 import android.provider.ContactsContract
 import android.speech.RecognitionListener
-import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
@@ -85,7 +84,10 @@ class BackgroundService : Service() {
         private const val STREAM_CAPTURE_HEIGHT = 360
         private const val CLOUD_FRAME_MAX_AGE_MS = 3_000L
         private const val RESTART_REQUEST_CODE = 3021
-        private const val STT_LANGUAGE_PACK_ERROR_CODE = 12
+        private const val STT_LANGUAGE_PACK_ERROR_CODE =
+            MitraSpeechRecognizerConfig.ERROR_LANGUAGE_NOT_SUPPORTED
+        private const val STT_LANGUAGE_UNAVAILABLE_ERROR_CODE =
+            MitraSpeechRecognizerConfig.ERROR_LANGUAGE_UNAVAILABLE
         private const val STT_MAX_BACKOFF_MS = 60_000L
 
         @Volatile
@@ -99,6 +101,8 @@ class BackgroundService : Service() {
 
     private lateinit var speechRecognizer: SpeechRecognizer
     private lateinit var speechIntent: Intent
+    private var speechRecognizerMode = MitraSpeechRecognizerConfig.MODE_DEFAULT
+    private var forceDefaultSpeechRecognizer = false
     private lateinit var tts: TextToSpeech
     private lateinit var audioManager: AudioManager
     private lateinit var connectivityManager: ConnectivityManager
@@ -928,23 +932,19 @@ class BackgroundService : Service() {
         // Destroy old instance if it exists before creating a new one
         try { speechRecognizer.destroy() } catch (_: Exception) {}
 
-        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
+        val created = MitraSpeechRecognizerConfig.create(this, forceDefaultSpeechRecognizer, "VOICE_BG")
+        speechRecognizer = created.recognizer
+        speechRecognizerMode = created.mode
 
-        speechIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            // Indian English improves recognition of Indian accents and names. Do not force offline
-            // recognition: several Poco/HyperOS builds do not have the en-IN offline pack installed.
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-IN")
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "en-IN")
-            putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, "en-IN")
-            // Return several guesses so we can pick the one that best matches a command.
-            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
-            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
-            @Suppress("DEPRECATION")
-            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 5000L)
-            @Suppress("DEPRECATION")
-            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 7000L)
-        }
+        speechIntent = MitraSpeechRecognizerConfig.commandIntent(
+            maxResults = 5,
+            possiblyCompleteSilenceMs = 5000L,
+            completeSilenceMs = 7000L
+        )
+        Log.i(
+            "VOICE_BG",
+            "SpeechRecognizer mode=$speechRecognizerMode locale=${created.languageTag} preferOffline=${created.preferOffline}"
+        )
 
         speechRecognizer.setRecognitionListener(object : RecognitionListener {
             override fun onResults(results: Bundle) {
@@ -963,6 +963,17 @@ class BackgroundService : Service() {
                 isListening = false
                 Log.d("VOICE_BG", "STT error code: $error")
 
+                val fallbackFromOnDevice =
+                    speechRecognizerMode == MitraSpeechRecognizerConfig.MODE_ON_DEVICE &&
+                    MitraSpeechRecognizerConfig.shouldFallbackFromOnDevice(error)
+                if (fallbackFromOnDevice) {
+                    forceDefaultSpeechRecognizer = true
+                    Log.w(
+                        "VOICE_BG",
+                        "on-device recognizer failed error=$error; falling back to default offline-preferred recognizer"
+                    )
+                }
+
                 when (error) {
                     // These errors mean the recognizer is broken or busy. Back off so the hardware
                     // mic does not audibly toggle on/off in a tight loop.
@@ -971,7 +982,10 @@ class BackgroundService : Service() {
                         scheduleSpeechRetry(error, recreate = true)
                     }
                     STT_LANGUAGE_PACK_ERROR_CODE -> {
-                        scheduleSpeechRetry(error, recreate = false)
+                        scheduleSpeechRetry(error, recreate = fallbackFromOnDevice)
+                    }
+                    STT_LANGUAGE_UNAVAILABLE_ERROR_CODE -> {
+                        scheduleSpeechRetry(error, recreate = fallbackFromOnDevice)
                     }
                     // No speech / silence — retry during command phase, else restart
                     SpeechRecognizer.ERROR_NO_MATCH,
@@ -992,7 +1006,7 @@ class BackgroundService : Service() {
                     SpeechRecognizer.ERROR_NETWORK,
                     SpeechRecognizer.ERROR_NETWORK_TIMEOUT,
                     SpeechRecognizer.ERROR_SERVER -> {
-                        scheduleSpeechRetry(error, recreate = false)
+                        scheduleSpeechRetry(error, recreate = fallbackFromOnDevice)
                     }
                     // Any other error — recreate with backoff to be safe.
                     else -> {
