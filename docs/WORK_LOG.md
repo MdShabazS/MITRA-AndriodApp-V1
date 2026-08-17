@@ -2,6 +2,40 @@
 
 This file records completed project work in a format that app, AI, and hardware teammates can scan quickly.
 
+## 2026-08-17
+
+### iOS Feasibility And Restrictions Note
+
+Owner: MdShabazS / Codex
+
+Summary:
+
+- Added a clean iOS feasibility document before starting the iOS application.
+- Captured why the current Android/backend/hardware path may fail on iOS.
+- Documented iOS restrictions around local network permission, WiFi join flow, background execution, RTSP, model conversion, app automation, and offline voice commands.
+- Copied the same document to Downloads for external sharing.
+
+Files changed:
+
+- `docs/IOS_FEASIBILITY_AND_RESTRICTIONS.md`
+- `docs/WORK_LOG.md`
+
+App impact:
+
+- No app behavior changed.
+
+Hardware impact:
+
+- None, but the document confirms that iOS should not lock hardware protocol until the stream contract is verified.
+
+AI/model impact:
+
+- Notes that current Android/TFLite model packaging is not directly iOS-ready and needs Core ML or TFLite iOS validation.
+
+Validation:
+
+- Documentation-only change based on current repo docs and Apple platform documentation.
+
 ## 2026-08-12
 
 ### Poco Offline Speech Model Recovery
